@@ -57,13 +57,13 @@ async function doSwap() {
   const tokenABI = ["function approve(address spender, uint amount) external returns (bool)"];
 
   try {
-    // ✅ Connect contract dengan signer!
-    const token = new ethers.Contract(tokenIn, tokenABI, provider).connect(signer);
+    // Pakai kontrak langsung dari signer
+    const token = new ethers.Contract(tokenIn, tokenABI, signer);
     await token.approve(routerAddress, amount);
 
-    const router = new ethers.Contract(routerAddress, routerABI, provider).connect(signer);
+    const router = new ethers.Contract(routerAddress, routerABI, signer);
     const path = [tokenIn, tokenOut];
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
+    const deadline = Math.floor(Date.now() / 1000) + 600;
 
     const tx = await router.swapExactTokensForTokens(amount, 0, path, user, deadline);
     await tx.wait();
@@ -71,6 +71,6 @@ async function doSwap() {
     document.getElementById("result").innerText = "✅ Swap Success!";
   } catch (err) {
     document.getElementById("result").innerText = "❌ Swap Failed: " + err.message;
-    console.error(err);
+    console.error("Swap Error:", err);
   }
 }
