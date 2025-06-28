@@ -5,7 +5,7 @@ let provider, signer;
 
 const tokenList = [
   { address: "0x5a726a26b4a1c3f8b8ce86a388aac3a4bdcb7281", symbol: "XOS" },
-  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
+  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
 ];
 
