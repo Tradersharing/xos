@@ -2,39 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tradersharing Swap</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js" defer></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <script src="app.js" defer></script>
 </head>
 <body>
+  <div class="header">Tradersharing Swap</div>
 
-  <!-- HEADER -->
-  <div class="header">
-    <span class="logo">Tradersharing Swap</span>
-  </div>
-
-  <!-- PAGE: SWAP -->
   <div id="swap" class="page active">
     <div class="swap-container">
-      <div id="walletStatus" class="wallet-status">Wallet not connected</div>
+      <div class="wallet-status" id="walletStatus">Wallet not connected</div>
       <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
 
       <div class="input-section">
-        <label>You Pay</label>
-        <input id="amount" placeholder="Amount" />
+        <label>You pay</label>
+        <input id="amount" placeholder="Amount">
         <select id="tokenIn">
-          <option value="0x5a726a...">XOS</option>
-          <option value="0x4a28...">USDT</option>
+          <option value="0x5a726aE0A72C542c438655bA18eE61F7B6dB4c72">XOS</option>
+          <option value="0x4a28b76840E73A1c52D34cF71A01388dC8aD0c42">USDT</option>
+          <option value="0x1234567890abcdef1234567890abcdef12345678">USDC</option>
         </select>
       </div>
 
       <div class="output-section">
-        <label>You Receive</label>
+        <label>You receive</label>
         <select id="tokenOut">
-          <option value="0x4a28...">USDT</option>
-          <option value="0x5a726a...">XOS</option>
+          <option value="0x4a28b76840E73A1c52D34cF71A01388dC8aD0c42">USDT</option>
+          <option value="0x5a726aE0A72C542c438655bA18eE61F7B6dB4c72">XOS</option>
+          <option value="0x1234567890abcdef1234567890abcdef12345678">USDC</option>
         </select>
       </div>
 
@@ -43,54 +40,43 @@
     </div>
   </div>
 
-  <!-- PAGE: LIQUIDITY (template, ganti konten nanti) -->
   <div id="liquidity" class="page">
     <div class="page-inner">
       <h2>Add Liquidity</h2>
-      <p>Fitur akan mirip Uniswap. Konten disusun langsung di sini, tidak pakai iframe.</p>
+      <div class="swap-container">
+        <p>Provide liquidity to earn LP tokens</p>
+        <input placeholder="Token A Amount">
+        <input placeholder="Token B Amount">
+        <button disabled>Add Liquidity (on progress)</button>
+      </div>
     </div>
   </div>
 
-  <!-- PAGE: STAKING -->
   <div id="staking" class="page">
     <div class="page-inner">
       <h2>Staking</h2>
-      <p>Fitur staking mirip Biswap. Bisa langsung dirancang HTML/JS-nya di sini.</p>
+      <div class="swap-container">
+        <p>Stake LP tokens to earn rewards</p>
+        <input placeholder="LP Token Amount">
+        <button disabled>Stake (on progress)</button>
+        <button disabled>Unstake (on progress)</button>
+      </div>
     </div>
   </div>
 
-  <!-- PAGE: FAUCET -->
   <div id="faucet" class="page">
-    <div class="page-inner" style="height: calc(100vh - 120px); overflow-y: auto;">
-      <iframe src="https://faucet.x.ink" width="100%" height="100%" style="border: none;"></iframe>
+    <div class="page-inner">
+      <h2>Faucet</h2>
+      <iframe src="https://faucet.x.ink" width="100%" height="500" style="border: none;"></iframe>
     </div>
   </div>
 
-  <!-- FOOTER MENU / NAVIGATION -->
+  <div class="footer-space"></div>
   <div class="tab-bar">
-    <button class="active" onclick="switchPage('swap', this)">
-      <span>🏠</span><br/>Home
-    </button>
-    <button onclick="switchPage('liquidity', this)">
-      <span>💧</span><br/>Liquidity
-    </button>
-    <button onclick="switchPage('staking', this)">
-      <span>📈</span><br/>Staking
-    </button>
-    <button onclick="switchPage('faucet', this)">
-      <span>🚰</span><br/>Faucet
-    </button>
+    <button class="active" onclick="switchPage('swap', this)">⌂<br>Home</button>
+    <button onclick="switchPage('liquidity', this)">📅<br>Liquidity</button>
+    <button onclick="switchPage('staking', this)">📈<br>Staking</button>
+    <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
-
-  <!-- PAGE SWITCHER -->
-  <script>
-    function switchPage(id, btn) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    }
-  </script>
-
 </body>
 </html>
