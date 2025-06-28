@@ -1,114 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tradersharing Swap</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js" defer></script>
   <script src="app.js" defer></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0d0d0d;
-      color: white;
-    }
-    .header {
-      background: #1a1a1a;
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border-bottom: 1px solid #333;
-    }
-    .tab-bar {
-      display: flex;
-      justify-content: space-around;
-      background: #1a1a1a;
-      padding: 0.5rem 0;
-      border-top: 1px solid #333;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-    }
-    .tab-bar button {
-      background: none;
-      border: none;
-      color: #aaa;
-      font-size: 0.9rem;
-    }
-    .tab-bar button.active {
-      color: orange;
-    }
-    .page {
-      display: none;
-      padding: 1rem;
-    }
-    .page.active {
-      display: block;
-    }
-    .swap-container {
-      margin-top: 1rem;
-      background: #1e1e1e;
-      padding: 1rem;
-      border-radius: 10px;
-    }
-    .input-section, .output-section {
-      margin: 1rem 0;
-    }
-    .footer-space {
-      height: 3rem;
-    }
-  </style>
 </head>
 <body>
-  <div class="header">Tradersharing Swap</div>
 
+  <!-- HEADER -->
+  <div class="header">
+    <span class="logo">Tradersharing Swap</span>
+  </div>
+
+  <!-- PAGE: SWAP -->
   <div id="swap" class="page active">
     <div class="swap-container">
-      <div class="wallet-status" id="walletStatus">Wallet not connected</div>
+      <div id="walletStatus" class="wallet-status">Wallet not connected</div>
       <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
+
       <div class="input-section">
-        <label>You pay</label>
-        <input id="amount" placeholder="Amount">
+        <label>You Pay</label>
+        <input id="amount" placeholder="Amount" />
         <select id="tokenIn">
           <option value="0x5a726a...">XOS</option>
           <option value="0x4a28...">USDT</option>
         </select>
       </div>
+
       <div class="output-section">
-        <label>You receive</label>
+        <label>You Receive</label>
         <select id="tokenOut">
           <option value="0x4a28...">USDT</option>
           <option value="0x5a726a...">XOS</option>
         </select>
       </div>
+
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
       <div id="result"></div>
     </div>
   </div>
 
+  <!-- PAGE: LIQUIDITY (template, ganti konten nanti) -->
   <div id="liquidity" class="page">
-    <iframe src="https://app.uniswap.org/#/add" width="100%" height="600" style="border: none;"></iframe>
+    <div class="page-inner">
+      <h2>Add Liquidity</h2>
+      <p>Fitur akan mirip Uniswap. Konten disusun langsung di sini, tidak pakai iframe.</p>
+    </div>
   </div>
 
+  <!-- PAGE: STAKING -->
   <div id="staking" class="page">
-    <iframe src="https://biswap.org/farms" width="100%" height="600" style="border: none;"></iframe>
+    <div class="page-inner">
+      <h2>Staking</h2>
+      <p>Fitur staking mirip Biswap. Bisa langsung dirancang HTML/JS-nya di sini.</p>
+    </div>
   </div>
 
+  <!-- PAGE: FAUCET -->
   <div id="faucet" class="page">
-    <iframe src="https://faucet.x.ink" width="100%" height="600" style="border: none;"></iframe>
+    <div class="page-inner" style="height: calc(100vh - 120px); overflow-y: auto;">
+      <iframe src="https://faucet.x.ink" width="100%" height="100%" style="border: none;"></iframe>
+    </div>
   </div>
 
-  <div class="footer-space"></div>
+  <!-- FOOTER MENU / NAVIGATION -->
   <div class="tab-bar">
-    <button class="active" onclick="switchPage('swap', this)">Home</button>
-    <button onclick="switchPage('liquidity', this)">Liquidity</button>
-    <button onclick="switchPage('staking', this)">Staking</button>
-    <button onclick="switchPage('faucet', this)">Faucet</button>
+    <button class="active" onclick="switchPage('swap', this)">
+      <span>🏠</span><br/>Home
+    </button>
+    <button onclick="switchPage('liquidity', this)">
+      <span>💧</span><br/>Liquidity
+    </button>
+    <button onclick="switchPage('staking', this)">
+      <span>📈</span><br/>Staking
+    </button>
+    <button onclick="switchPage('faucet', this)">
+      <span>🚰</span><br/>Faucet
+    </button>
   </div>
 
+  <!-- PAGE SWITCHER -->
   <script>
     function switchPage(id, btn) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -117,5 +91,6 @@
       btn.classList.add('active');
     }
   </script>
+
 </body>
 </html>
