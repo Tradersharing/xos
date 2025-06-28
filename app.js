@@ -1,5 +1,4 @@
-// ✅ app.js FINAL untuk Tradersharing Swap (XOS Testnet)
-// Fitur: connect wallet, dropdown token + saldo, swap, add custom token, UI fix faucet
+// ✅ app.js FINAL untuk Tradersharing Swap (dropdown selalu aktif, add token di dropdown seperti PancakeSwap)
 
 let provider, signer;
 
@@ -35,6 +34,9 @@ function formatAddress(addr) {
 }
 
 async function init() {
+  document.getElementById("tokenIn").disabled = false;
+  document.getElementById("tokenOut").disabled = false;
+
   if (window.ethereum) {
     provider = new ethers.BrowserProvider(window.ethereum);
     const accounts = await provider.send("eth_accounts", []);
@@ -48,7 +50,11 @@ async function init() {
       document.getElementById("btnConnect").disabled = true;
 
       await populateTokenDropdowns();
+    } else {
+      await populateTokenDropdowns(); // tetap isi dropdown meski belum connect
     }
+  } else {
+    await populateTokenDropdowns(); // isi dropdown jika tidak ada wallet
   }
 }
 
@@ -61,20 +67,24 @@ async function populateTokenDropdowns() {
     "function symbol() view returns (string)"
   ];
 
-  const address = await signer.getAddress();
   const tokenInSelect = document.getElementById("tokenIn");
   const tokenOutSelect = document.getElementById("tokenOut");
 
   tokenInSelect.innerHTML = "";
   tokenOutSelect.innerHTML = "";
 
+  const address = signer ? await signer.getAddress() : null;
+
   for (const token of tokenList) {
     try {
-      const contract = new ethers.Contract(token.address, erc20Abi, signer);
-      const raw = await contract.balanceOf(address);
-      const decimals = await contract.decimals();
-      const balance = ethers.formatUnits(raw, decimals);
-      const label = `${token.symbol} (${parseFloat(balance).toFixed(2)})`;
+      let label = token.symbol;
+      if (signer) {
+        const contract = new ethers.Contract(token.address, erc20Abi, signer);
+        const raw = await contract.balanceOf(address);
+        const decimals = await contract.decimals();
+        const balance = ethers.formatUnits(raw, decimals);
+        label += ` (${parseFloat(balance).toFixed(2)})`;
+      }
 
       const optionIn = new Option(label, token.address);
       const optionOut = new Option(label, token.address);
@@ -89,13 +99,7 @@ async function populateTokenDropdowns() {
   tokenOutSelect.disabled = false;
 }
 
-async function addCustomToken() {
-  const address = document.getElementById("customTokenAddress").value.trim();
-  if (!ethers.isAddress(address)) {
-    alert("Alamat token tidak valid");
-    return;
-  }
-
+async function tryAddTokenToDropdown(address) {
   const erc20Abi = [
     "function balanceOf(address owner) view returns (uint)",
     "function decimals() view returns (uint8)",
@@ -113,19 +117,24 @@ async function addCustomToken() {
     const tokenIn = document.getElementById("tokenIn");
     const tokenOut = document.getElementById("tokenOut");
 
-    if ([...tokenIn.options].some(opt => opt.value === address)) {
-      alert("Token sudah ada di dropdown");
-      return;
-    }
+    if ([...tokenIn.options].some(opt => opt.value === address)) return;
 
     tokenIn.appendChild(new Option(label, address));
     tokenOut.appendChild(new Option(label, address));
-
-    alert(`${symbol} berhasil ditambahkan.`);
   } catch (err) {
-    alert("Gagal membaca kontrak token: " + err.message);
+    console.warn("Gagal baca token custom", address, err);
   }
 }
+
+document.getElementById("tokenIn").addEventListener("change", async (e) => {
+  const val = e.target.value;
+  if (ethers.isAddress(val)) await tryAddTokenToDropdown(val);
+});
+
+document.getElementById("tokenOut").addEventListener("change", async (e) => {
+  const val = e.target.value;
+  if (ethers.isAddress(val)) await tryAddTokenToDropdown(val);
+});
 
 async function doSwap() {
   try {
