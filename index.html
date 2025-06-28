@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XOS Swap</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <div class="swap-container">
+    <h2>XOS Swap</h2>
+    <div class="wallet-status" id="walletStatus">Wallet not connected</div>
+    <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
+    <a href="https://faucet.x.ink" target="_blank">
+      <button style="background:#66ccff; color:#000;">💧 Get XOS Testnet</button>
+    </a>
+    <select id="tokenIn">
+      <option value="0x5a726a26b4a1c3f8b8ce86a388aac3a4bdcb7281">XOS</option>
+      <option value="0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10">USDT</option>
+      <option value="0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02">USDC</option>
+    </select>
+    <select id="tokenOut">
+      <option value="0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10">USDT</option>
+      <option value="0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02">USDC</option>
+      <option value="0x5a726a26b4a1c3f8b8ce86a388aac3a4bdcb7281">XOS</option>
+    </select>
+    <input id="amount" placeholder="Amount" />
+    <button onclick="doSwap()">Swap</button>
+    <div id="result"></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

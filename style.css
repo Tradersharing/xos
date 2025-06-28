@@ -1,0 +1,46 @@
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #2b5876, #4e4376);
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.swap-container {
+  background: #1c1c3c;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  width: 90%;
+  max-width: 400px;
+}
+.swap-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+select, input, button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+}
+button {
+  background: #ffb347;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+button:hover {
+  background: #ffa500;
+}
+.wallet-status {
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 10px;
+}
