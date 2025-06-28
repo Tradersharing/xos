@@ -16,24 +16,30 @@
       <div class="wallet-status" id="walletStatus">Wallet not connected</div>
       <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
 
- <div class="input-section">
-  <label>You pay</label>
-  <input id="amount" placeholder="Amount">
-  <select id="tokenIn" disabled></select>
-</div>
+      <div class="input-section">
+        <label>You pay</label>
+        <input id="amount" placeholder="Amount">
+        <select id="tokenIn" disabled></select>
+      </div>
 
-<div class="output-section">
-  <label>You receive</label>
-  <select id="tokenOut" disabled></select>
-</div>
+      <div class="output-section">
+        <label>You receive</label>
+        <select id="tokenOut" disabled></select>
+      </div>
 
-<button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
-<div id="result"></div>
+      <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
+      <div id="result"></div>
 
+      <div class="custom-token">
+        <input type="text" id="customTokenAddress" placeholder="Paste token contract address">
+        <button onclick="addCustomToken()">Add Token</button>
+      </div>
+    </div>
+  </div>
 
   <div id="liquidity" class="page">
     <div class="page-inner">
-      <h2>Add Liquidity</h2>
+      <h2>Liquidity</h2>
       <div class="swap-container">
         <p>Provide liquidity to earn LP tokens</p>
         <input placeholder="Token A Amount">
@@ -64,8 +70,8 @@
 
   <div class="footer-space"></div>
   <div class="tab-bar">
-    <button class="active" onclick="switchPage('swap', this)">⌂<br>Home</button>
-    <button onclick="switchPage('liquidity', this)">📅<br>Liquidity</button>
+    <button class="active" onclick="switchPage('swap', this)">🏠<br>Home</button>
+    <button onclick="switchPage('liquidity', this)">💧<br>Liquidity</button>
     <button onclick="switchPage('staking', this)">📈<br>Staking</button>
     <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
