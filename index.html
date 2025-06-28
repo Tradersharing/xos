@@ -16,27 +16,20 @@
       <div class="wallet-status" id="walletStatus">Wallet not connected</div>
       <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
 
-      <div class="input-section">
-        <label>You pay</label>
-        <input id="amount" placeholder="Amount">
-        <select id="tokenIn">
-          <select id="tokenIn" disabled></select>
+ <div class="input-section">
+  <label>You pay</label>
+  <input id="amount" placeholder="Amount">
+  <select id="tokenIn" disabled></select>
+</div>
 
+<div class="output-section">
+  <label>You receive</label>
+  <select id="tokenOut" disabled></select>
+</div>
 
-        </select>
-      </div>
+<button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
+<div id="result"></div>
 
-      <div class="output-section">
-        <label>You receive</label>
-        <select id="tokenOut">
-          <select id="tokenOut" disabled></select>
-        </select>
-      </div>
-
-      <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
-      <div id="result"></div>
-    </div>
-  </div>
 
   <div id="liquidity" class="page">
     <div class="page-inner">
