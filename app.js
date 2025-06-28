@@ -28,6 +28,47 @@ async function connectWallet() {
     alert("MetaMask tidak ditemukan");
   }
 }
+const XOS_CHAIN_ID = "0x4F3"; // 1267 dalam hexadecimal
+
+async function ensureXOSNetwork() {
+  try {
+    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+    if (currentChainId !== XOS_CHAIN_ID) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: XOS_CHAIN_ID }]
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          // RPC belum ditambahkan, maka tambahkan
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: XOS_CHAIN_ID,
+              chainName: 'XOS Testnet',
+              nativeCurrency: {
+                name: 'XOS',
+                symbol: 'XOS',
+                decimals: 18
+              },
+              rpcUrls: ['https://rpc.xos.blockjoe.dev'],
+              blockExplorerUrls: ['https://testnet.xoscan.io']
+            }]
+          });
+        } else {
+          alert("❌ Gagal switch ke jaringan XOS Testnet. Coba manual lewat wallet.");
+          throw switchError;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Jaringan tidak bisa dicek:", err);
+    alert("⚠️ Tidak dapat mendeteksi jaringan. Pastikan MetaMask aktif.");
+  }
+}
+
 
 function formatAddress(addr) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
