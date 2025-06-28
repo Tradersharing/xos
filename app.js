@@ -75,6 +75,39 @@ async function ensureXOSNetwork() {
 }
 
 
+async function ensureXOSNetwork() {
+  try {
+    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (currentChainId !== XOS_CHAIN_ID) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: XOS_CHAIN_ID }]
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: XOS_CHAIN_ID,
+              chainName: 'XOS Testnet',
+              nativeCurrency: { name: 'XOS', symbol: 'XOS', decimals: 18 },
+              rpcUrls: ['https://rpc.xos.blockjoe.dev'],
+              blockExplorerUrls: ['https://testnet.xoscan.io']
+            }]
+          });
+        } else {
+          alert("Gagal switch ke jaringan XOS");
+          throw switchError;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Gagal deteksi jaringan:", err);
+    alert("Tidak dapat mendeteksi jaringan. Pastikan MetaMask aktif.");
+  }
+}
+
 function formatAddress(addr) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
@@ -145,6 +178,35 @@ async function populateTokenDropdowns() {
   tokenOutSelect.disabled = false;
 }
 
+async function init() {
+  document.getElementById("tokenIn").disabled = false;
+  document.getElementById("tokenOut").disabled = false;
+
+  if (window.ethereum) {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send("eth_accounts", []);
+    if (accounts.length > 0) {
+      signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
+      document.getElementById("walletStatus").innerText = "Connected: " + formatAddress(address);
+      document.getElementById("btnSwap").disabled = false;
+      document.getElementById("btnConnect").innerText = "Connected";
+      document.getElementById("btnConnect").disabled = true;
+
+      await populateTokenDropdowns();
+
+      const native = await provider.getBalance(address);
+      const xos = ethers.formatEther(native);
+      document.getElementById("walletStatus").innerText += ` | ${parseFloat(xos).toFixed(3)} XOS`;
+    } else {
+      await populateTokenDropdowns();
+    }
+  } else {
+    await populateTokenDropdowns();
+  }
+}
+        
 async function tryAddTokenToDropdown(address) {
   const erc20Abi = [
     "function balanceOf(address owner) view returns (uint)",
