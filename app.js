@@ -1,15 +1,15 @@
-// ✅ app.js FINAL — Terintegrasi HTML swap Tradersharing (XOS Testnet)
-// Fitur: Connect wallet, dropdown token + saldo, approve + swap aktif, hash ke explorer
+// ✅ app.js FINAL untuk Tradersharing Swap (XOS Testnet)
+// Fitur: connect wallet, dropdown token + saldo, swap, add custom token, UI fix faucet
 
 let provider, signer;
 
 const tokenList = [
   { address: "0x5a726a26b4a1c3f8b8ce86a388aac3a4bdcb7281", symbol: "XOS" },
-  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
+  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
   { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
 ];
 
-const routerAddress = "0x778dBa0703801c4212dB2715b3a7b9c6D42Cf703"; // XOS Testnet Router
+const routerAddress = "0x778dBa0703801c4212dB2715b3a7b9c6D42Cf703";
 const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 
 async function connectWallet() {
@@ -76,23 +76,55 @@ async function populateTokenDropdowns() {
       const balance = ethers.formatUnits(raw, decimals);
       const label = `${token.symbol} (${parseFloat(balance).toFixed(2)})`;
 
-      const optionIn = document.createElement("option");
-      optionIn.value = token.address;
-      optionIn.textContent = label;
-
-      const optionOut = document.createElement("option");
-      optionOut.value = token.address;
-      optionOut.textContent = label;
-
+      const optionIn = new Option(label, token.address);
+      const optionOut = new Option(label, token.address);
       tokenInSelect.appendChild(optionIn);
       tokenOutSelect.appendChild(optionOut);
     } catch (err) {
-      console.warn("Gagal ambil data token", token.symbol, err);
+      console.warn("Gagal baca token", token.address, err);
     }
   }
 
   tokenInSelect.disabled = false;
   tokenOutSelect.disabled = false;
+}
+
+async function addCustomToken() {
+  const address = document.getElementById("customTokenAddress").value.trim();
+  if (!ethers.isAddress(address)) {
+    alert("Alamat token tidak valid");
+    return;
+  }
+
+  const erc20Abi = [
+    "function balanceOf(address owner) view returns (uint)",
+    "function decimals() view returns (uint8)",
+    "function symbol() view returns (string)"
+  ];
+
+  try {
+    const contract = new ethers.Contract(address, erc20Abi, signer);
+    const symbol = await contract.symbol();
+    const decimals = await contract.decimals();
+    const raw = await contract.balanceOf(await signer.getAddress());
+    const balance = ethers.formatUnits(raw, decimals);
+    const label = `${symbol} (${parseFloat(balance).toFixed(2)})`;
+
+    const tokenIn = document.getElementById("tokenIn");
+    const tokenOut = document.getElementById("tokenOut");
+
+    if ([...tokenIn.options].some(opt => opt.value === address)) {
+      alert("Token sudah ada di dropdown");
+      return;
+    }
+
+    tokenIn.appendChild(new Option(label, address));
+    tokenOut.appendChild(new Option(label, address));
+
+    alert(`${symbol} berhasil ditambahkan.`);
+  } catch (err) {
+    alert("Gagal membaca kontrak token: " + err.message);
+  }
 }
 
 async function doSwap() {
@@ -153,6 +185,10 @@ function switchPage(id, btn) {
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+
+  if (id === 'faucet') {
+    document.querySelector('#faucet iframe').style.height = window.innerHeight - 100 + 'px';
+  }
 }
 
 function initLiquidity() {
