@@ -1,76 +1,109 @@
+// app.js lengkap untuk Swap aktif, Staking & LP dummy
 
-let provider, signer, user;
-
-// Auto-switch to XOS testnet (chainId: 0x84F = 2127)
-async function switchToXOS() {
-  const xosChain = {
-    chainId: '0x84F',
-    chainName: 'XOS Testnet',
-    rpcUrls: ['https://rpc-testnet.xoslab.org'],
-    nativeCurrency: {
-      name: 'XOS',
-      symbol: 'XOS',
-      decimals: 18
-    },
-    blockExplorerUrls: ['https://testnet-scan.xoslab.org']
-  };
-
-  try {
-    await window.ethereum.request({
-      method: 'wallet_addEthereumChain',
-      params: [xosChain]
-    });
-  } catch (err) {
-    console.error("Error switching chain:", err);
-  }
-}
+let provider, signer;
 
 async function connectWallet() {
-  if (!window.ethereum) return alert("Install MetaMask or OKX Wallet!");
-  await switchToXOS();
-
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = await provider.getSigner();
-  user = await signer.getAddress();
-
-  // Signature login
-  const msg = `Login to XOS Swap DApp\n${new Date().toLocaleString()}`;
-  await signer.signMessage(msg);
-
-  // Update UI
-  document.getElementById("walletStatus").innerText = "Connected: " + user.slice(0, 6) + "...";
-  document.getElementById("btnConnect").innerText = "✅ Connected";
-  document.getElementById("btnConnect").disabled = true;
-  document.querySelector("button[onclick='doSwap()']").disabled = false;
-}
-
-async function doSwap() {
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  const amount = ethers.parseUnits(document.getElementById("amount").value, 18);
-  const routerAddress = "0x778dBa0703801c4212dB2715b3a7b9c6D42Cf703";
-
-  const routerABI = [
-    "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory)"
-  ];
-  const tokenABI = ["function approve(address spender, uint amount) external returns (bool)"];
-
-  try {
-    // Pakai kontrak langsung dari signer
-    const token = new ethers.Contract(tokenIn, tokenABI, signer);
-    await token.approve(routerAddress, amount);
-
-    const router = new ethers.Contract(routerAddress, routerABI, signer);
-    const path = [tokenIn, tokenOut];
-    const deadline = Math.floor(Date.now() / 1000) + 600;
-
-    const tx = await router.swapExactTokensForTokens(amount, 0, path, user, deadline);
-    await tx.wait();
-
-    document.getElementById("result").innerText = "✅ Swap Success!";
-  } catch (err) {
-    document.getElementById("result").innerText = "❌ Swap Failed: " + err.message;
-    console.error("Swap Error:", err);
+  if (window.ethereum) {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    const address = await signer.getAddress();
+    document.getElementById("walletStatus").innerText = "Connected: " + formatAddress(address);
+    document.getElementById("btnSwap").disabled = false;
+  } else {
+    alert("MetaMask tidak ditemukan");
   }
 }
+
+function formatAddress(addr) {
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
+}
+
+async function init() {
+  if (window.ethereum) {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send("eth_accounts", []);
+    if (accounts.length > 0) {
+      signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      document.getElementById("walletStatus").innerText = "Connected: " + formatAddress(address);
+      document.getElementById("btnSwap").disabled = false;
+    }
+  }
+}
+
+window.addEventListener("load", init);
+
+async function doSwap() {
+  try {
+    const tokenIn = document.getElementById("tokenIn").value;
+    const tokenOut = document.getElementById("tokenOut").value;
+    const amount = document.getElementById("amount").value;
+    const routerAddress = "0xYourRouterAddressHere"; // Ganti
+
+    if (!tokenIn || !tokenOut || !amount) {
+      alert("Isi semua input swap.");
+      return;
+    }
+
+    const erc20Abi = [
+      "function approve(address spender, uint amount) public returns (bool)",
+      "function decimals() view returns (uint8)"
+    ];
+
+    const routerAbi = [
+      "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)",
+      "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)"
+    ];
+
+    const decimals = 18; // ubah sesuai token
+    const amountInWei = ethers.parseUnits(amount, decimals);
+
+    const tokenInContract = new ethers.Contract(tokenIn, erc20Abi, signer);
+    const routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+
+    // Approve
+    const approveTx = await tokenInContract.approve(routerAddress, amountInWei);
+    await approveTx.wait();
+
+    const amounts = await routerContract.getAmountsOut(amountInWei, [tokenIn, tokenOut]);
+    const amountOutMin = amounts[1] - amounts[1] / BigInt(10); // slippage 10%
+
+    const tx = await routerContract.swapExactTokensForTokens(
+      amountInWei,
+      amountOutMin,
+      [tokenIn, tokenOut],
+      await signer.getAddress(),
+      Math.floor(Date.now() / 1000) + 300
+    );
+
+    const receipt = await tx.wait();
+    document.getElementById("result").innerText = "Swap sukses, tx hash: " + receipt.hash;
+  } catch (err) {
+    console.error("Swap gagal:", err);
+    document.getElementById("result").innerText = "Swap gagal: " + err.message;
+  }
+}
+
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Dummy init LP & Staking page (kotak kerja)
+function initLiquidity() {
+  const container = document.getElementById('liquidity');
+  container.innerHTML = '<div class="page-inner"><h2>Liquidity - Coming Soon</h2><p>Tempat untuk add/remove liquidity akan tampil di sini.</p></div>';
+}
+
+function initStaking() {
+  const container = document.getElementById('staking');
+  container.innerHTML = '<div class="page-inner"><h2>Staking - Coming Soon</h2><p>Tempat staking dan klaim reward akan muncul di sini.</p></div>';
+}
+
+window.addEventListener("load", () => {
+  initLiquidity();
+  initStaking();
+});
