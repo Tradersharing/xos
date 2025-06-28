@@ -12,6 +12,7 @@ const routerAddress = "0x778dBa0703801c4212dB2715b3a7b9c6D42Cf703";
 const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 
 async function connectWallet() {
+  await ensureXOSNetwork();
   if (window.ethereum) {
     provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
