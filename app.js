@@ -3,7 +3,7 @@
 let provider, signer;
 
 const tokenList = [
-  { address: "0x5a726a26b4a1c3f8b8ce86a388aac3a4bdcb7281", symbol: "XOS" },
+
   { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
   { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
 ];
@@ -140,7 +140,7 @@ async function populateTokenDropdowns() {
       console.warn("Gagal baca token", token.address, err);
     }
   }
-
+  
   tokenInSelect.disabled = false;
   tokenOutSelect.disabled = false;
 }
