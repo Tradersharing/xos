@@ -1,6 +1,12 @@
-// app.js FINAL — Swap aktif, LP & Staking dummy, fix ENS error, tombol connect update
+// app.js FINAL — Swap aktif, LP & Staking dummy, fix ENS error, tombol connect update + saldo di dropdown
 
 let provider, signer;
+
+const tokenList = [
+  { address: "0x5a726aE0A72C542c438655bA18eE61F7B6dB4c72", symbol: "XOS" },
+  { address: "0x4a28b76840E73A1c52D34cF71A01388dC8aD0c42", symbol: "USDT" },
+  { address: "0x1234567890abcdef1234567890abcdef12345678", symbol: "USDC" } // dummy, ganti jika perlu
+];
 
 async function connectWallet() {
   if (window.ethereum) {
@@ -13,7 +19,7 @@ async function connectWallet() {
     document.getElementById("btnConnect").innerText = "Connected";
     document.getElementById("btnConnect").disabled = true;
 
-    loadBalances();
+    await populateTokenDropdowns();
   } else {
     alert("MetaMask tidak ditemukan");
   }
@@ -35,7 +41,7 @@ async function init() {
       document.getElementById("btnConnect").innerText = "Connected";
       document.getElementById("btnConnect").disabled = true;
 
-      loadBalances();
+      await populateTokenDropdowns();
     }
   }
 }
@@ -96,23 +102,44 @@ async function doSwap() {
   }
 }
 
-async function loadBalances() {
-  const tokenAddress = document.getElementById("tokenIn").value;
+async function populateTokenDropdowns() {
   const erc20Abi = [
     "function balanceOf(address owner) view returns (uint)",
     "function decimals() view returns (uint8)",
     "function symbol() view returns (string)"
   ];
-  const contract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+
   const address = await signer.getAddress();
-  const rawBalance = await contract.balanceOf(address);
-  const decimals = await contract.decimals();
-  const symbol = await contract.symbol();
-  const balance = ethers.formatUnits(rawBalance, decimals);
-  document.getElementById("walletStatus").innerText += ` | ${balance} ${symbol}`;
+  const tokenInSelect = document.getElementById("tokenIn");
+  const tokenOutSelect = document.getElementById("tokenOut");
+
+  tokenInSelect.innerHTML = "";
+  tokenOutSelect.innerHTML = "";
+
+  for (const token of tokenList) {
+    const contract = new ethers.Contract(token.address, erc20Abi, signer);
+    const raw = await contract.balanceOf(address);
+    const decimals = await contract.decimals();
+    const balance = ethers.formatUnits(raw, decimals);
+    const label = `${token.symbol} (${parseFloat(balance).toFixed(2)})`;
+
+    const optionIn = document.createElement("option");
+    optionIn.value = token.address;
+    optionIn.textContent = label;
+
+    const optionOut = document.createElement("option");
+    optionOut.value = token.address;
+    optionOut.textContent = label;
+
+    tokenInSelect.appendChild(optionIn);
+    tokenOutSelect.appendChild(optionOut);
+  }
+
+  tokenInSelect.disabled = false;
+  tokenOutSelect.disabled = false;
 }
 
-document.getElementById("tokenIn").addEventListener("change", loadBalances);
+document.getElementById("tokenIn").addEventListener("change", populateTokenDropdowns);
 
 function switchPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
