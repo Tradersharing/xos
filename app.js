@@ -25,6 +25,10 @@ async function connectWallet() {
     document.getElementById("btnConnect").disabled = true;
 
     await populateTokenDropdowns();
+    const native = await provider.getBalance(address);
+const xos = ethers.formatEther(native);
+document.getElementById("walletStatus").innerText += ` | ${parseFloat(xos).toFixed(3)} XOS`;
+
   } else {
     alert("MetaMask tidak ditemukan");
   }
