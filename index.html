@@ -9,7 +9,7 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div class="header">📈 Tradersharing Swap</div>
+  <div class="header">🔗 Tradersharing Swap - XOS Testnet</div>
 
   <div id="swap" class="page active">
     <div class="swap-container">
@@ -19,12 +19,12 @@
       <div class="input-section">
         <label>You pay</label>
         <input id="amount" placeholder="Amount">
-        <select id="tokenIn" onclick="openTokenSelector()" disabled></select>
+        <select id="tokenIn" onclick="openTokenSelector('tokenIn')" disabled></select>
       </div>
 
       <div class="output-section">
         <label>You receive</label>
-        <select id="tokenOut" onclick="openTokenSelector()" disabled></select>
+        <select id="tokenOut" onclick="openTokenSelector('tokenOut')" disabled></select>
       </div>
 
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
@@ -87,17 +87,16 @@
       <input type="text" id="searchToken" placeholder="Search name / address">
 
       <div class="network-list">
-        <span class="network active">BNB</span>
+        <span class="network active">XOS</span>
         <span class="network">ETH</span>
         <span class="network">MATIC</span>
         <span class="network">ARB</span>
       </div>
 
       <div class="popular-tokens">
-        <button>BNB</button>
-        <button>USDT</button>
-        <button>CAKE</button>
-        <button>BTCB</button>
+        <button onclick="selectToken('0x...', 'XOS')">XOS</button>
+        <button onclick="selectToken('0x...', 'USDT')">USDT</button>
+        <button onclick="selectToken('0x...', 'WTEST')">WTEST</button>
       </div>
 
       <div id="tokenList" class="token-list">
