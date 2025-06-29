@@ -1,4 +1,4 @@
-// ✅ app.js FINAL — Simbol token otomatis dari kontrak, support native XOS, dropdown selalu aktif, anti-error saat load
+// ✅ app.js FINAL — Simbol token otomatis dari kontrak, support native XOS, dropdown selalu aktif, swap aktif pakai exactInputSingle
 
 let provider, signer;
 
@@ -8,9 +8,20 @@ const tokenList = [
   { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02" }
 ];
 
-const routerAddress = "0x778dBa0703801c4212dB2715b3a7b9c6D42Cf703";
+const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 const XOS_CHAIN_ID = "0x4F3";
+
+const erc20Abi = [
+  "function approve(address spender, uint amount) public returns (bool)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+  "function balanceOf(address owner) view returns (uint)"
+];
+
+const routerAbi = [
+  "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
+];
 
 async function ensureXOSNetwork() {
   try {
@@ -72,27 +83,15 @@ function formatAddress(addr) {
 }
 
 async function populateTokenDropdowns() {
-  const erc20Abi = [
-    "function balanceOf(address owner) view returns (uint)",
-    "function decimals() view returns (uint8)",
-    "function symbol() view returns (string)"
-  ];
-
   const tokenInSelect = document.getElementById("tokenIn");
   const tokenOutSelect = document.getElementById("tokenOut");
-
   tokenInSelect.innerHTML = "";
   tokenOutSelect.innerHTML = "";
 
-  let address = null;
-  try {
-    address = signer ? await signer.getAddress() : null;
-  } catch (e) {
-    console.warn("Signer belum siap:", e);
-  }
+  let address = signer ? await signer.getAddress() : null;
 
-  try {
-    for (const token of tokenList) {
+  for (const token of tokenList) {
+    try {
       let label = "";
       if (token.address === "native") {
         label = "XOS";
@@ -101,7 +100,7 @@ async function populateTokenDropdowns() {
           const balance = ethers.formatEther(raw);
           label += ` (${parseFloat(balance).toFixed(3)})`;
         }
-      } else if (signer && address) {
+      } else {
         const contract = new ethers.Contract(token.address, erc20Abi, signer);
         const symbol = await contract.symbol();
         const raw = await contract.balanceOf(address);
@@ -111,11 +110,10 @@ async function populateTokenDropdowns() {
       }
       tokenInSelect.appendChild(new Option(label, token.address));
       tokenOutSelect.appendChild(new Option(label, token.address));
+    } catch (err) {
+      console.warn("Token gagal dibaca:", token.address, err);
     }
-  } catch (err) {
-    console.error("Dropdown populate error:", err);
   }
-
   tokenInSelect.disabled = false;
   tokenOutSelect.disabled = false;
 }
@@ -147,3 +145,41 @@ async function init() {
 }
 
 window.addEventListener("load", init);
+
+document.getElementById("btnSwap").addEventListener("click", doSwap);
+
+async function doSwap() {
+  try {
+    const tokenIn = document.getElementById("tokenIn").value;
+    const tokenOut = document.getElementById("tokenOut").value;
+    const amount = document.getElementById("amount").value;
+    if (!tokenIn || !tokenOut || !amount) return alert("Lengkapi input terlebih dahulu");
+
+    const isNative = tokenIn === "native";
+    const recipient = await signer.getAddress();
+    const swapContract = new ethers.Contract(routerAddress, routerAbi, signer);
+    const amountIn = ethers.parseUnits(amount, 18);
+
+    if (!isNative) {
+      const tokenContract = new ethers.Contract(tokenIn, erc20Abi, signer);
+      const approveTx = await tokenContract.approve(routerAddress, amountIn);
+      await approveTx.wait();
+    }
+
+    const tx = await swapContract.exactInputSingle({
+      tokenIn: tokenIn === "native" ? ethers.ZeroAddress : tokenIn,
+      tokenOut: tokenOut === "native" ? ethers.ZeroAddress : tokenOut,
+      fee: 3000,
+      recipient,
+      amountIn,
+      amountOutMinimum: 0,
+      sqrtPriceLimitX96: 0
+    }, { value: isNative ? amountIn : 0 });
+
+    const receipt = await tx.wait();
+    document.getElementById("result").innerHTML = `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
+  } catch (err) {
+    console.error("Swap gagal:", err);
+    document.getElementById("result").innerText = "❌ Swap gagal: " + err.message;
+  }
+}
