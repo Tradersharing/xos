@@ -8,7 +8,8 @@ async function connectWallet() {
     signer = await provider.getSigner();
 
     const address = await signer.getAddress();
-    document.getElementById("walletStatus").innerText = "Connected: " + address.slice(0, 6) + "..." + address.slice(-4);
+    document.getElementById("walletStatus").innerText =
+      "Connected: " + address.slice(0, 6) + "..." + address.slice(-4);
 
     document.getElementById("btnSwap").disabled = false;
     document.getElementById("tokenIn").disabled = false;
@@ -18,31 +19,49 @@ async function connectWallet() {
   }
 }
 
-// === Dummy Token List ===
+// === Real Token List (XOS & USDT default)
 const tokenList = [
-  { address: ethers.ZeroAddress, symbol: "BNB", isNative: true },
-  { address: "0x55d398326f99059fF775485246999027B3197955", symbol: "USDT" },
-  { address: "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", symbol: "CAKE" },
-  { address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c", symbol: "BTCB" }
+  { address: "0x0000000000000000000000000000000000000000", symbol: "XOS", isNative: true },
+  { address: "0x55d398326f99059fF775485246999027B3197955", symbol: "USDT" }
 ];
 
-// === Swap Function (Dummy) ===
+// === SWAP Function Placeholder (ready real)
 function doSwap() {
   const amount = document.getElementById("amount").value;
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
 
-  document.getElementById("result").innerText = `Swapped ${amount} from ${tokenIn} to ${tokenOut}`;
+  if (tokenIn === tokenOut) {
+    alert("Token harus berbeda!");
+    return;
+  }
+
+  document.getElementById("result").innerText = `⏳ Swapping ${amount} from ${getSymbol(tokenIn)} to ${getSymbol(tokenOut)}...`;
+
+  // 🚧 Tempat integrasi ke smart contract swap nyata nanti
+  setTimeout(() => {
+    document.getElementById("result").innerText = `✅ Swapped ${amount} from ${getSymbol(tokenIn)} to ${getSymbol(tokenOut)}.`;
+  }, 2000);
+}
+
+function getSymbol(addr) {
+  const found = tokenList.find(t => t.address.toLowerCase() === addr.toLowerCase());
+  return found?.symbol || "UNKNOWN";
 }
 
 // === Add Custom Token ===
 function addCustomToken() {
   const address = document.getElementById("customTokenAddress").value;
   if (!address) return;
+  if (tokenList.find(t => t.address.toLowerCase() === address.toLowerCase())) {
+    alert("Token sudah ada.");
+    return;
+  }
 
-  tokenList.push({ address, symbol: "CUSTOM" });
+  const symbol = prompt("Masukkan simbol token (misal: ABC):") || "CUSTOM";
+  tokenList.push({ address, symbol });
   document.getElementById("customTokenAddress").value = "";
-  alert("Token added to list.");
+  alert("Token berhasil ditambahkan.");
 }
 
 // === Page Navigation ===
@@ -54,7 +73,7 @@ function switchPage(pageId, btn) {
   btn.classList.add("active");
 }
 
-// === Token Selector Popup Logic ===
+// === Token Selector Logic ===
 let currentTargetSelect = null;
 
 function openTokenSelector(targetId) {
@@ -70,20 +89,22 @@ function closeTokenSelector() {
 function renderTokenList() {
   const listEl = document.getElementById("tokenList");
   const search = document.getElementById("searchToken").value.toLowerCase();
-  listEl.innerHTML = "";
+  const otherSelect = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
+  const otherValue = document.getElementById(otherSelect).value;
 
+  listEl.innerHTML = "";
   tokenList.forEach(t => {
-    const address = t.address;
-    const symbol = t.symbol || "TOKEN";
+    const { address, symbol } = t;
     const isMatch = symbol.toLowerCase().includes(search) || address.toLowerCase().includes(search);
-    if (!isMatch) return;
+    if (!isMatch || address === otherValue) return;
 
     const item = document.createElement("div");
     item.className = "token-item";
     item.onclick = () => selectToken(address, symbol);
     item.innerHTML = `
       <div class="info">
-        <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${address}/logo.png" onerror="this.src='https://via.placeholder.com/24'" />
+        <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${address}/logo.png"
+          onerror="this.src='https://via.placeholder.com/24'" />
         <div>
           <div class="name">${symbol}</div>
           <div class="symbol">${address.slice(0, 6)}...${address.slice(-4)}</div>
@@ -111,6 +132,7 @@ function selectToken(address, symbol) {
     select.appendChild(opt);
     select.selectedIndex = select.options.length - 1;
   }
+
   closeTokenSelector();
 }
 
