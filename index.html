@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tradersharing Swap</title>
+  <title>Tradersharing Swap - XOS Testnet</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <script src="app.js" defer></script>
@@ -19,21 +20,16 @@
       <div class="input-section">
         <label>You pay</label>
         <input id="amount" placeholder="Amount">
-        <select id="tokenIn" onclick="openTokenSelector('tokenIn')" disabled></select>
+        <button id="tokenIn" class="token-button" onclick="openTokenSelector('tokenIn')" disabled>Select Token</button>
       </div>
 
       <div class="output-section">
         <label>You receive</label>
-        <select id="tokenOut" onclick="openTokenSelector('tokenOut')" disabled></select>
+        <button id="tokenOut" class="token-button" onclick="openTokenSelector('tokenOut')" disabled>Select Token</button>
       </div>
 
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
       <div id="result"></div>
-
-      <div class="custom-token">
-        <input type="text" id="customTokenAddress" placeholder="Paste token contract address">
-        <button onclick="addCustomToken()">Add</button>
-      </div>
     </div>
   </div>
 
@@ -62,9 +58,8 @@
   </div>
 
   <div id="faucet" class="page">
-    <div class="page-inner">
-      <h2>🌧️ Faucet</h2>
-      <iframe src="https://faucet.x.ink" width="100%" height="500"></iframe>
+    <div class="page-inner" style="padding:0;">
+      <iframe src="https://faucet.x.ink" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
     </div>
   </div>
 
