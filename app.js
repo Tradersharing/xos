@@ -1,16 +1,12 @@
-// ✅ app.js FINAL XOS — RPC otomatis, symbol native, custom token, anti error dropdown, auto detect network
+// ✅ app.js FINAL XOS Terintegrasi — support swap native/erc20, dropdown aktif, popup pencarian token, auto detect network
 
 let provider, signer;
 
-const XOS_CHAIN_ID = "0x65D"; // 1629 desimal (hex: 0x65D)
+const XOS_CHAIN_ID = "0x65D"; // 1629 decimal
 const XOS_PARAMS = {
   chainId: XOS_CHAIN_ID,
   chainName: "XOS Testnet",
-  nativeCurrency: {
-    name: "XOS",
-    symbol: "XOS",
-    decimals: 18,
-  },
+  nativeCurrency: { name: "XOS", symbol: "XOS", decimals: 18 },
   rpcUrls: ["https://xosrpc.com"],
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
@@ -32,16 +28,10 @@ async function ensureXOSNetwork() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== XOS_CHAIN_ID) {
     try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: XOS_CHAIN_ID }],
-      });
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: XOS_CHAIN_ID }] });
     } catch (switchError) {
       if (switchError.code === 4902) {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [XOS_PARAMS],
-        });
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
       } else {
         alert("Gagal switch jaringan");
         throw switchError;
@@ -62,10 +52,9 @@ async function connectWallet() {
     const xosBalance = ethers.formatEther(balance);
 
     document.getElementById("walletStatus").innerText = `Connected: ${address.slice(0,6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
-
     document.getElementById("btnSwap").disabled = false;
-    document.getElementById("tokenIn").disabled = false;
-    document.getElementById("tokenOut").disabled = false;
+    document.getElementById("btnConnect").innerText = "Connected";
+    document.getElementById("btnConnect").disabled = true;
 
     populateTokenDropdowns();
   } catch (err) {
@@ -123,20 +112,39 @@ async function doSwap() {
   }
 }
 
-document.getElementById("searchToken").addEventListener("input", () => {
+// === TOKEN SELECTOR ===
+let currentTargetSelect = null;
+
+function openTokenSelector(targetId) {
+  currentTargetSelect = targetId;
+  document.getElementById("tokenSelector").classList.remove("hidden");
+  document.getElementById("searchToken").value = "";
+  renderTokenList();
+}
+
+function closeTokenSelector() {
+  document.getElementById("tokenSelector").classList.add("hidden");
+}
+
+function renderTokenList() {
   const search = document.getElementById("searchToken").value.toLowerCase();
-  const tokenListEl = document.getElementById("tokenList");
-  tokenListEl.innerHTML = "";
+  const listEl = document.getElementById("tokenList");
+  listEl.innerHTML = "";
 
   tokenList.forEach(t => {
-    if (!t.symbol.toLowerCase().includes(search) && !t.address.toLowerCase().includes(search)) return;
+    const address = t.address;
+    const symbol = t.symbol;
+    if (!symbol.toLowerCase().includes(search) && !address.toLowerCase().includes(search)) return;
+
     const el = document.createElement("div");
     el.className = "token-item";
-    el.onclick = () => selectToken(t.address, t.symbol);
-    el.innerHTML = `<div class="name">${t.symbol}</div><div class="symbol">${t.address.slice(0,6)}...${t.address.slice(-4)}</div>`;
-    tokenListEl.appendChild(el);
+    el.onclick = () => selectToken(address, symbol);
+    el.innerHTML = `<div class="name">${symbol}</div><div class="symbol">${address.slice(0,6)}...${address.slice(-4)}</div>`;
+    listEl.appendChild(el);
   });
-});
+}
+
+document.getElementById("searchToken").addEventListener("input", renderTokenList);
 
 function selectToken(address, symbol) {
   const select = document.getElementById(currentTargetSelect);
@@ -149,13 +157,20 @@ function selectToken(address, symbol) {
     }
   }
   if (!found) {
-    const opt = document.createElement("option");
-    opt.value = address;
-    opt.text = symbol;
+    const opt = new Option(symbol, address);
     select.appendChild(opt);
     select.selectedIndex = select.options.length - 1;
   }
   closeTokenSelector();
 }
 
-  
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+window.addEventListener("load", () => {
+  populateTokenDropdowns();
+});
