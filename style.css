@@ -274,3 +274,61 @@ h2 {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* === Header === */
+.custom-header {
+  background: #0c0c2c;
+  padding: 20px 15px 10px;
+  text-align: center;
+}
+.custom-header .title {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: 'Segoe UI', sans-serif;
+}
+.custom-header .title .blue {
+  color: #00bfff;
+}
+.custom-header .title .red {
+  color: #ff3b30;
+}
+.custom-header .subtitle {
+  font-size: 13px;
+  color: #ccc;
+  margin-top: 5px;
+}
+
+/* === Swap Box Style (like Pancake) === */
+.swap-box {
+  background: #f2f2f2;
+  border-radius: 15px;
+  padding: 15px;
+  margin-top: 20px;
+}
+.token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e0e0e0;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  padding: 10px;
+}
+.token-row input {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  text-align: right;
+  flex: 1;
+}
+.token-row button {
+  background: #bbb;
+  border: none;
+  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 10px;
+  margin-right: 10px;
+}
+
+
+  
