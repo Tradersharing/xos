@@ -10,7 +10,7 @@ const XOS_PARAMS = {
     decimals: 18,
   },
   rpcUrls: ["https://xosrpc.com"], // ganti dengan RPC XOS asli
-  blockExplorerUrls: ["https://xosscan.com"]
+  blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
 async function connectWallet() {
