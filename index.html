@@ -3,33 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tradersharing Swap - XOS Testnet</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <title>Tradersharing Swap</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div class="header">🔗 Tradersharing Swap - XOS Testnet</div>
+
+  <!-- === Custom Header === -->
+  <header class="custom-header">
+    <div class="title">
+      <span class="blue">Trader</span><span class="red">Sharing</span>
+    </div>
+    <div class="subtitle">The Profesional Swap Token XOS-Testnet</div>
+  </header>
 
   <div id="swap" class="page active">
     <div class="swap-container">
       <div class="wallet-status" id="walletStatus">Wallet not connected</div>
       <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
 
-      <div class="input-section">
-        <label>You pay</label>
-        <input id="amount" placeholder="Amount">
-        <button id="tokenIn" class="token-button" onclick="openTokenSelector('tokenIn')" disabled>Select Token</button>
-      </div>
-
-      <div class="output-section">
-        <label>You receive</label>
-        <button id="tokenOut" class="token-button" onclick="openTokenSelector('tokenOut')" disabled>Select Token</button>
+      <!-- Swap Box -->
+      <div class="swap-box">
+        <div class="token-row">
+          <button onclick="openTokenSelector('tokenIn')" id="tokenInBtn">Select Token</button>
+          <input type="text" id="amount" placeholder="0.00">
+        </div>
+        <div class="token-row">
+          <button onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">Select Token</button>
+          <input type="text" id="amountOut" placeholder="0.00" disabled>
+        </div>
       </div>
 
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
       <div id="result"></div>
+
+      <div class="custom-token">
+        <input type="text" id="customTokenAddress" placeholder="Paste token contract address">
+        <button onclick="addCustomToken()">Add</button>
+      </div>
     </div>
   </div>
 
@@ -58,8 +70,9 @@
   </div>
 
   <div id="faucet" class="page">
-    <div class="page-inner" style="padding:0;">
-      <iframe src="https://faucet.x.ink" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+    <div class="page-inner">
+      <h2>🌧️ Faucet</h2>
+      <iframe src="https://faucet.x.ink" width="100%" height="500"></iframe>
     </div>
   </div>
 
@@ -94,9 +107,7 @@
         <button onclick="selectToken('0x...', 'WTEST')">WTEST</button>
       </div>
 
-      <div id="tokenList" class="token-list">
-        <!-- Token entries will go here -->
-      </div>
+      <div id="tokenList" class="token-list"></div>
     </div>
   </div>
 </body>
