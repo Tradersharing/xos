@@ -1,142 +1,117 @@
-// ✅ app.js FINAL Terhubung Uniswap V3 (exactInputSingle), Dropdown aktif, RPC XOS auto, saldo native terbaca, validasi network, transaksi OKX/MetaMask aktif
-
-let provider, signer;
-
-const tokenList = [
-  { address: ethers.ZeroAddress, symbol: "XOS", isNative: true },
-  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10" },
-  { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02" }
-];
-
-const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
-const explorerTxUrl = "https://testnet.xoscan.io/tx/";
-const XOS_CHAIN_ID = "0x4F3"; // 1267
-
-const routerAbi = [
-  "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
-];
-
-async function ensureXOSNetwork() {
-  const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-  if (currentChainId !== XOS_CHAIN_ID) {
-    alert("🌐 Jaringan salah, ubah ke XOS Testnet");
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: XOS_CHAIN_ID }]
-      });
-    } catch (switchError) {
-      if (switchError.code === 4902) {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: XOS_CHAIN_ID,
-            chainName: 'XOS Testnet',
-            nativeCurrency: { name: 'XOS', symbol: 'XOS', decimals: 18 },
-            rpcUrls: ['https://rpc.xos.blockjoe.dev'],
-            blockExplorerUrls: ['https://testnet.xoscan.io']
-          }]
-        });
-      } else {
-        throw switchError;
-      }
-    }
-  }
-}
+// === Wallet Connection ===
+let provider;
+let signer;
 
 async function connectWallet() {
-  await ensureXOSNetwork();
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = await provider.getSigner();
-  const address = await signer.getAddress();
-
-  document.getElementById("walletStatus").innerText = "Connected: " + formatAddress(address);
-  document.getElementById("btnSwap").disabled = false;
-  document.getElementById("btnConnect").innerText = "Connected";
-  document.getElementById("btnConnect").disabled = true;
-
-  await populateTokenDropdowns();
-  const native = await provider.getBalance(address);
-  const xos = ethers.formatEther(native);
-  document.getElementById("walletStatus").innerText += ` | ${parseFloat(xos).toFixed(3)} XOS`;
-}
-
-function formatAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-}
-
-async function populateTokenDropdowns() {
-  const abi = [
-    "function balanceOf(address) view returns (uint)",
-    "function decimals() view returns (uint8)",
-    "function symbol() view returns (string)"
-  ];
-  const addr = signer ? await signer.getAddress() : null;
-  const tokenIn = document.getElementById("tokenIn");
-  const tokenOut = document.getElementById("tokenOut");
-  tokenIn.innerHTML = "";
-  tokenOut.innerHTML = "";
-
-  for (const t of tokenList) {
-    let label = t.symbol || "";
-    if (t.isNative) {
-      const bal = await provider.getBalance(addr);
-      label = `XOS (${parseFloat(ethers.formatEther(bal)).toFixed(3)})`;
-    } else {
-      const c = new ethers.Contract(t.address, abi, signer);
-      const raw = await c.balanceOf(addr);
-      const dec = await c.decimals();
-      const sym = await c.symbol();
-      label = `${sym} (${parseFloat(ethers.formatUnits(raw, dec)).toFixed(2)})`;
-    }
-    tokenIn.appendChild(new Option(label, t.address));
-    tokenOut.appendChild(new Option(label, t.address));
-  }
-
-  tokenIn.disabled = false;
-  tokenOut.disabled = false;
-}
-
-async function doSwap() {
-  try {
-    const tokenIn = document.getElementById("tokenIn").value;
-    const tokenOut = document.getElementById("tokenOut").value;
-    const amount = document.getElementById("amount").value;
-    const amountIn = ethers.parseUnits(amount, 18);
-    if (!tokenIn || !tokenOut || !amount) return alert("Isi semua kolom");
-
-    if (tokenIn !== ethers.ZeroAddress) {
-      const abi = ["function approve(address,uint) returns (bool)"];
-      const t = new ethers.Contract(tokenIn, abi, signer);
-      const tx = await t.approve(routerAddress, amountIn);
-      await tx.wait();
-    }
-
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const recipient = await signer.getAddress();
-    const tx = await router.exactInputSingle({
-      tokenIn,
-      tokenOut,
-      fee: 3000,
-      recipient,
-      amountIn,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: 0
-    });
-    const receipt = await tx.wait();
-    document.getElementById("result").innerHTML = `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
-  } catch (err) {
-    console.error(err);
-    document.getElementById("result").innerText = "❌ Swap gagal: " + (err.reason || err.message);
-  }
-}
-
-window.addEventListener("load", async () => {
   if (window.ethereum) {
     provider = new ethers.BrowserProvider(window.ethereum);
-    const accs = await provider.send("eth_accounts", []);
-    if (accs.length > 0) await connectWallet();
-    else await populateTokenDropdowns();
+    signer = await provider.getSigner();
+
+    const address = await signer.getAddress();
+    document.getElementById("walletStatus").innerText = "Connected: " + address.slice(0, 6) + "..." + address.slice(-4);
+
+    document.getElementById("btnSwap").disabled = false;
+    document.getElementById("tokenIn").disabled = false;
+    document.getElementById("tokenOut").disabled = false;
+  } else {
+    alert("Please install MetaMask!");
   }
-});
+}
+
+// === Dummy Token List ===
+const tokenList = [
+  { address: ethers.ZeroAddress, symbol: "BNB", isNative: true },
+  { address: "0x55d398326f99059fF775485246999027B3197955", symbol: "USDT" },
+  { address: "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", symbol: "CAKE" },
+  { address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c", symbol: "BTCB" }
+];
+
+// === Swap Function (Dummy) ===
+function doSwap() {
+  const amount = document.getElementById("amount").value;
+  const tokenIn = document.getElementById("tokenIn").value;
+  const tokenOut = document.getElementById("tokenOut").value;
+
+  document.getElementById("result").innerText = `Swapped ${amount} from ${tokenIn} to ${tokenOut}`;
+}
+
+// === Add Custom Token ===
+function addCustomToken() {
+  const address = document.getElementById("customTokenAddress").value;
+  if (!address) return;
+
+  tokenList.push({ address, symbol: "CUSTOM" });
+  document.getElementById("customTokenAddress").value = "";
+  alert("Token added to list.");
+}
+
+// === Page Navigation ===
+function switchPage(pageId, btn) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(pageId).classList.add("active");
+
+  document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+// === Token Selector Popup Logic ===
+let currentTargetSelect = null;
+
+function openTokenSelector(targetId) {
+  currentTargetSelect = targetId;
+  document.getElementById("tokenSelector").classList.remove("hidden");
+  renderTokenList();
+}
+
+function closeTokenSelector() {
+  document.getElementById("tokenSelector").classList.add("hidden");
+}
+
+function renderTokenList() {
+  const listEl = document.getElementById("tokenList");
+  const search = document.getElementById("searchToken").value.toLowerCase();
+  listEl.innerHTML = "";
+
+  tokenList.forEach(t => {
+    const address = t.address;
+    const symbol = t.symbol || "TOKEN";
+    const isMatch = symbol.toLowerCase().includes(search) || address.toLowerCase().includes(search);
+    if (!isMatch) return;
+
+    const item = document.createElement("div");
+    item.className = "token-item";
+    item.onclick = () => selectToken(address, symbol);
+    item.innerHTML = `
+      <div class="info">
+        <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${address}/logo.png" onerror="this.src='https://via.placeholder.com/24'" />
+        <div>
+          <div class="name">${symbol}</div>
+          <div class="symbol">${address.slice(0, 6)}...${address.slice(-4)}</div>
+        </div>
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+function selectToken(address, symbol) {
+  const select = document.getElementById(currentTargetSelect);
+  let found = false;
+  for (const opt of select.options) {
+    if (opt.value === address) {
+      select.selectedIndex = opt.index;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    const opt = document.createElement("option");
+    opt.value = address;
+    opt.text = symbol;
+    select.appendChild(opt);
+    select.selectedIndex = select.options.length - 1;
+  }
+  closeTokenSelector();
+}
+
+document.getElementById("searchToken").addEventListener("input", renderTokenList);
