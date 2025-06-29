@@ -1,70 +1,94 @@
-// === Wallet Connection ===
-let provider;
-let signer;
+// === WALLET CONNECTION & NETWORK ===
+let provider, signer;
+const XOS_CHAIN_ID = "0x65D"; // 1629 decimal, replace with real XOS chain ID if different
+const XOS_PARAMS = {
+  chainId: XOS_CHAIN_ID,
+  chainName: "XOS Testnet",
+  nativeCurrency: {
+    name: "XOS",
+    symbol: "XOS",
+    decimals: 18,
+  },
+  rpcUrls: ["https://xosrpc.com"], // ganti dengan RPC XOS asli
+  blockExplorerUrls: ["https://xosscan.com"]
+};
 
 async function connectWallet() {
-  if (window.ethereum) {
+  if (!window.ethereum) return alert("Install MetaMask dulu gan!");
+  try {
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
 
+    await checkNetwork();
+
     const address = await signer.getAddress();
-    document.getElementById("walletStatus").innerText =
-      "Connected: " + address.slice(0, 6) + "..." + address.slice(-4);
+    const balance = await provider.getBalance(address);
+    const xosBalance = ethers.formatEther(balance);
+
+    document.getElementById("walletStatus").innerText = `Connected: ${address.slice(0,6)}...${address.slice(-4)} | XOS: ${parseFloat(xosBalance).toFixed(4)}`;
 
     document.getElementById("btnSwap").disabled = false;
     document.getElementById("tokenIn").disabled = false;
     document.getElementById("tokenOut").disabled = false;
-  } else {
-    alert("Please install MetaMask!");
+  } catch (err) {
+    console.error(err);
+    alert("Gagal connect wallet");
   }
 }
 
-// === Real Token List (XOS & USDT default)
+async function checkNetwork() {
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  if (chainId !== XOS_CHAIN_ID) {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: XOS_CHAIN_ID }],
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [XOS_PARAMS],
+        });
+      } else {
+        throw switchError;
+      }
+    }
+  }
+}
+
+// === TOKEN LIST ===
 const tokenList = [
-  { address: "0x0000000000000000000000000000000000000000", symbol: "XOS", isNative: true },
-  { address: "0x55d398326f99059fF775485246999027B3197955", symbol: "USDT" }
+  { address: ethers.ZeroAddress, symbol: "XOS", isNative: true },
+  { address: "0x55d398326f99059fF775485246999027B3197955", symbol: "USDT" },
+  { address: "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", symbol: "CAKE" },
+  { address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c", symbol: "BTCB" }
 ];
 
-// === SWAP Function Placeholder (ready real)
-function doSwap() {
+// === SWAP (SIMULASI / REAL) ===
+async function doSwap() {
   const amount = document.getElementById("amount").value;
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
 
-  if (tokenIn === tokenOut) {
-    alert("Token harus berbeda!");
-    return;
-  }
+  if (!signer) return alert("Wallet belum connect!");
+  if (tokenIn === tokenOut) return alert("Token tidak boleh sama!");
 
-  document.getElementById("result").innerText = `⏳ Swapping ${amount} from ${getSymbol(tokenIn)} to ${getSymbol(tokenOut)}...`;
-
-  // 🚧 Tempat integrasi ke smart contract swap nyata nanti
-  setTimeout(() => {
-    document.getElementById("result").innerText = `✅ Swapped ${amount} from ${getSymbol(tokenIn)} to ${getSymbol(tokenOut)}.`;
-  }, 2000);
+  // NOTE: Ganti dengan logika smart contract swap asli
+  document.getElementById("result").innerText = `✅ Swapped ${amount} from ${tokenIn} to ${tokenOut}`;
 }
 
-function getSymbol(addr) {
-  const found = tokenList.find(t => t.address.toLowerCase() === addr.toLowerCase());
-  return found?.symbol || "UNKNOWN";
-}
-
-// === Add Custom Token ===
+// === ADD CUSTOM TOKEN ===
 function addCustomToken() {
   const address = document.getElementById("customTokenAddress").value;
   if (!address) return;
-  if (tokenList.find(t => t.address.toLowerCase() === address.toLowerCase())) {
-    alert("Token sudah ada.");
-    return;
-  }
 
-  const symbol = prompt("Masukkan simbol token (misal: ABC):") || "CUSTOM";
-  tokenList.push({ address, symbol });
+  tokenList.push({ address, symbol: "CUSTOM" });
   document.getElementById("customTokenAddress").value = "";
-  alert("Token berhasil ditambahkan.");
+  alert("Custom token ditambahkan.");
 }
 
-// === Page Navigation ===
+// === PAGE NAVIGATION ===
 function switchPage(pageId, btn) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById(pageId).classList.add("active");
@@ -73,7 +97,7 @@ function switchPage(pageId, btn) {
   btn.classList.add("active");
 }
 
-// === Token Selector Logic ===
+// === TOKEN SELECTOR ===
 let currentTargetSelect = null;
 
 function openTokenSelector(targetId) {
@@ -89,25 +113,23 @@ function closeTokenSelector() {
 function renderTokenList() {
   const listEl = document.getElementById("tokenList");
   const search = document.getElementById("searchToken").value.toLowerCase();
-  const otherSelect = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
-  const otherValue = document.getElementById(otherSelect).value;
-
   listEl.innerHTML = "";
+
   tokenList.forEach(t => {
-    const { address, symbol } = t;
+    const address = t.address;
+    const symbol = t.symbol || "TOKEN";
     const isMatch = symbol.toLowerCase().includes(search) || address.toLowerCase().includes(search);
-    if (!isMatch || address === otherValue) return;
+    if (!isMatch) return;
 
     const item = document.createElement("div");
     item.className = "token-item";
     item.onclick = () => selectToken(address, symbol);
     item.innerHTML = `
       <div class="info">
-        <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${address}/logo.png"
-          onerror="this.src='https://via.placeholder.com/24'" />
+        <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/${address}/logo.png" onerror="this.src='https://via.placeholder.com/24'" />
         <div>
           <div class="name">${symbol}</div>
-          <div class="symbol">${address.slice(0, 6)}...${address.slice(-4)}</div>
+          <div class="symbol">${address.slice(0,6)}...${address.slice(-4)}</div>
         </div>
       </div>
     `;
@@ -132,7 +154,6 @@ function selectToken(address, symbol) {
     select.appendChild(opt);
     select.selectedIndex = select.options.length - 1;
   }
-
   closeTokenSelector();
 }
 
