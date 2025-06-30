@@ -1,12 +1,18 @@
-// === Global Variables ===
+// ✅ app.js FINAL XOS Terintegrasi — support swap native/erc20, dropdown aktif, popup pencarian token, auto detect network
+
 let provider, signer;
+
 const CHAIN_ID_DEC = 1629;
-const CHAIN_ID_HEX = "0x65d"; // lowercase untuk MetaMask compatibility
+const CHAIN_ID_HEX = "0x65D";
 
 const XOS_PARAMS = {
   chainId: CHAIN_ID_HEX,
   chainName: "XOS Testnet",
-  nativeCurrency: { name: "XOS", symbol: "XOS", decimals: 18 },
+  nativeCurrency: {
+    name: "XOS",
+    symbol: "XOS",
+    decimals: 18
+  },
   rpcUrls: ["https://xosrpc.com"],
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
@@ -16,18 +22,16 @@ const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS", isNative: true },
-  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
-  { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
+  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" }
 ];
 
 const routerAbi = [
   "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
 ];
 
-// === Network Handling ===
 async function ensureXOSNetwork() {
-  const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
-  if (currentChain.toLowerCase() !== CHAIN_ID_HEX) {
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  if (chainId !== CHAIN_ID_HEX) {
     try {
       await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
     } catch (switchError) {
@@ -41,19 +45,18 @@ async function ensureXOSNetwork() {
   }
 }
 
-// === Wallet Connect ===
 async function connectWallet() {
   if (!window.ethereum) return alert("Install MetaMask dulu gan!");
   try {
-    await ensureXOSNetwork();
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
+    await ensureXOSNetwork();
 
     const address = await signer.getAddress();
     const balance = await provider.getBalance(address);
     const xosBalance = ethers.formatEther(balance);
 
-    document.getElementById("walletStatus").innerText = `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
+    document.getElementById("walletStatus").innerText = `Connected: ${address.slice(0,6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
     document.getElementById("btnSwap").disabled = false;
     document.getElementById("btnConnect").innerText = "Connected";
     document.getElementById("btnConnect").disabled = true;
@@ -63,6 +66,12 @@ async function connectWallet() {
     console.error(err);
     alert("Gagal connect wallet");
   }
+}
+
+// Auto update jika akun atau jaringan berubah
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', connectWallet);
+  window.ethereum.on('chainChanged', () => window.location.reload());
 }
 
 function populateTokenDropdowns() {
@@ -78,7 +87,43 @@ function populateTokenDropdowns() {
   });
 }
 
-// === Token Select Popup ===
+async function doSwap() {
+  const amount = document.getElementById("amount").value;
+  const tokenIn = document.getElementById("tokenIn").value;
+  const tokenOut = document.getElementById("tokenOut").value;
+  if (!signer || !amount || tokenIn === tokenOut) return alert("Input tidak valid!");
+
+  try {
+    const decimals = 18;
+    const amountIn = ethers.parseUnits(amount, decimals);
+    const recipient = await signer.getAddress();
+    const router = new ethers.Contract(routerAddress, routerAbi, signer);
+
+    if (tokenIn !== ethers.ZeroAddress) {
+      const erc20Abi = ["function approve(address spender, uint amount) public returns (bool)"];
+      const tokenContract = new ethers.Contract(tokenIn, erc20Abi, signer);
+      const tx = await tokenContract.approve(routerAddress, amountIn);
+      await tx.wait();
+    }
+
+    const tx = await router.exactInputSingle({
+      tokenIn,
+      tokenOut,
+      fee: 3000,
+      recipient,
+      amountIn,
+      amountOutMinimum: 0,
+      sqrtPriceLimitX96: 0
+    });
+    const receipt = await tx.wait();
+    document.getElementById("result").innerHTML = `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
+  } catch (err) {
+    console.error("Swap gagal:", err);
+    document.getElementById("result").innerText = "❌ Swap gagal: " + (err.reason || err.message);
+  }
+}
+
+// === TOKEN SELECTOR ===
 let currentTargetSelect = null;
 
 function openTokenSelector(targetId) {
@@ -97,11 +142,15 @@ function renderTokenList() {
   const listEl = document.getElementById("tokenList");
   listEl.innerHTML = "";
 
-  tokenList.forEach(({ address, symbol }) => {
-    if (!symbol.toLowerCase().includes(search) && !address.toLowerCase().includes(search)) return;
-    const el = document.createElement("button");
+  tokenList.forEach(t => {
+    const symbol = t.symbol;
+    const address = t.address;
+    if (!symbol.toLowerCase().includes(search)) return;
+
+    const el = document.createElement("div");
+    el.className = "token-item";
     el.onclick = () => selectToken(address, symbol);
-    el.innerHTML = `${symbol} <small>${address.slice(0,6)}...${address.slice(-4)}</small>`;
+    el.innerHTML = `<div class="name">${symbol}</div>`;
     listEl.appendChild(el);
   });
 }
@@ -109,67 +158,29 @@ function renderTokenList() {
 document.getElementById("searchToken").addEventListener("input", renderTokenList);
 
 function selectToken(address, symbol) {
-  const btn = currentTargetSelect === "tokenIn" ? document.getElementById("tokenInBtn") : document.getElementById("tokenOutBtn");
-  const selectEl = document.getElementById(currentTargetSelect);
-  if (selectEl && btn) {
-    let found = false;
-    for (const opt of selectEl.options) {
-      if (opt.value === address) {
-        selectEl.selectedIndex = opt.index;
-        found = true;
-        break;
-      }
+  const select = document.getElementById(currentTargetSelect);
+  const btn = document.getElementById(currentTargetSelect + "Btn");
+
+  let found = false;
+  for (const opt of select.options) {
+    if (opt.value === address) {
+      select.selectedIndex = opt.index;
+      found = true;
+      break;
     }
-    if (!found) {
-      const opt = new Option(symbol, address);
-      selectEl.appendChild(opt);
-      selectEl.selectedIndex = selectEl.options.length - 1;
-    }
-    btn.innerText = symbol;
   }
+
+  if (!found) {
+    const opt = new Option(symbol, address);
+    select.appendChild(opt);
+    select.selectedIndex = select.options.length - 1;
+  }
+
+  if (btn) btn.innerText = symbol;
+
   closeTokenSelector();
 }
 
-// === Swap Execution ===
-async function doSwap() {
-  const amount = document.getElementById("amount").value;
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  const resultBox = document.getElementById("result");
-
-  if (!signer || !amount || tokenIn === tokenOut || !tokenIn || !tokenOut) return alert("Input tidak valid!");
-
-  try {
-    const amountIn = ethers.parseUnits(amount, 18);
-    const recipient = await signer.getAddress();
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-
-    if (tokenIn !== ethers.ZeroAddress) {
-      const erc20Abi = ["function approve(address spender, uint amount) public returns (bool)"];
-      const tokenContract = new ethers.Contract(tokenIn, erc20Abi, signer);
-      const txApprove = await tokenContract.approve(routerAddress, amountIn);
-      await txApprove.wait();
-    }
-
-    const tx = await router.exactInputSingle({
-      tokenIn,
-      tokenOut,
-      fee: 3000,
-      recipient,
-      amountIn,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: 0
-    });
-
-    const receipt = await tx.wait();
-    resultBox.innerHTML = `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
-  } catch (err) {
-    console.error("Swap gagal:", err);
-    resultBox.innerText = "❌ Swap gagal: " + (err.reason || err.message);
-  }
-}
-
-// === Page Switcher ===
 function switchPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -177,7 +188,6 @@ function switchPage(id, btn) {
   btn.classList.add('active');
 }
 
-// === Initializer ===
 window.addEventListener("load", () => {
   populateTokenDropdowns();
 });
