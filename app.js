@@ -18,12 +18,13 @@ const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
   "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
 ];
-
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS" },
-  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
-  { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
+  { address: "0x4A28Df32C0ab6C9F1AeC67C1A7D5A7b0F25EBA10", symbol: "USDT" },
+  { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" }
 ];
+
+
 
 // ==== CONNECT WALLET ====
 async function connectWallet() {
