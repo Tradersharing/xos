@@ -132,24 +132,31 @@ async function selectToken(address, symbol) {
   updateRatePreview();
 }
 
+
+
+
 // ==== GET TOKEN BALANCE ====
 async function getTokenBalance(tokenAddress) {
-  if (!signer) return "0.00";
+  if (!signer || !provider) return "0.00";
   try {
-    if (tokenAddress === ethers.ZeroAddress) {
-      const balance = await provider.getBalance(await signer.getAddress());
+    const userAddress = await signer.getAddress();
+
+    if (tokenAddress.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
+      // Native XOS
+      const balance = await provider.getBalance(userAddress);
       return parseFloat(ethers.formatEther(balance)).toFixed(4);
-    } else {
-      const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
-      const token = new ethers.Contract(tokenAddress, abi, provider);
-      const [rawBal, dec] = await Promise.all([
-        token.balanceOf(await signer.getAddress()),
-        token.decimals()
-      ]);
-      return parseFloat(ethers.formatUnits(rawBal, dec)).toFixed(4);
     }
+
+    // Token ERC20
+    const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
+    const token = new ethers.Contract(tokenAddress, abi, provider);
+    const [rawBal, decimals] = await Promise.all([
+      token.balanceOf(userAddress),
+      token.decimals()
+    ]);
+    return parseFloat(ethers.formatUnits(rawBal, decimals)).toFixed(4);
   } catch (e) {
-    console.error("Error get balance", e);
+    console.error("❌ Error reading balance:", e);
     return "0.00";
   }
 }
@@ -162,21 +169,27 @@ async function doSwap() {
   if (!amount || tokenIn === tokenOut) return alert("Invalid input or same token!");
 
   try {
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
     const recipient = await signer.getAddress();
 
-    const erc20Abi = ["function decimals() view returns (uint8)", "function approve(address spender, uint amount) public returns (bool)"];
-    const tokenInContract = tokenIn === ethers.ZeroAddress ? null : new ethers.Contract(tokenIn, erc20Abi, signer);
-    const tokenOutContract = tokenOut === ethers.ZeroAddress ? null : new ethers.Contract(tokenOut, erc20Abi, signer);
+    // Ambil decimals tokenIn (ERC20) jika bukan native
+    let decimals = 18;
+    if (tokenIn.toLowerCase() !== ethers.ZeroAddress.toLowerCase()) {
+      const token = new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider);
+      decimals = await token.decimals();
+    }
+    const amountIn = ethers.parseUnits(amount, decimals);
 
-    const [decIn, decOut] = await Promise.all([
-      tokenInContract ? tokenInContract.decimals() : 18,
-      tokenOutContract ? tokenOutContract.decimals() : 18
-    ]);
+    // Approve tokenIn jika ERC20
+    if (tokenIn.toLowerCase() !== ethers.ZeroAddress.toLowerCase()) {
+      const approveAbi = ["function approve(address spender, uint256 amount) public returns (bool)"];
+      const tokenContract = new ethers.Contract(tokenIn, approveAbi, signer);
+      const txApprove = await tokenContract.approve(routerAddress, amountIn);
+      await txApprove.wait();
+    }
 
-    const amountIn = ethers.parseUnits(amount, decIn);
-
-    const params = {
+    // Panggil router swap
+    const router = new ethers.Contract(routerAddress, routerAbi, signer);
+    const tx = await router.exactInputSingle({
       tokenIn,
       tokenOut,
       fee: 3000,
@@ -184,24 +197,13 @@ async function doSwap() {
       amountIn,
       amountOutMinimum: 0,
       sqrtPriceLimitX96: 0
-    };
+    });
 
-    const expectedOut = await router.callStatic.exactInputSingle(params);
-    const minOut = expectedOut * 97n / 100n;
-
-    if (tokenIn !== ethers.ZeroAddress) {
-      const approveTx = await tokenInContract.approve(routerAddress, amountIn);
-      await approveTx.wait();
-    }
-
-    const swapTx = await router.exactInputSingle({ ...params, amountOutMinimum: minOut });
-    const receipt = await swapTx.wait();
-    document.getElementById("result").innerHTML = `✅ Swap Success! <a href='https://testnet.xoscan.io/tx/${receipt.hash}' target='_blank'>View Tx</a>`;
-    document.getElementById("amount").value = "";
-    updateRatePreview();
+    const receipt = await tx.wait();
+    document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (err) {
-    console.error("Swap failed", err);
-    document.getElementById("result").innerText = "❌ Swap Failed: " + (err.reason || err.message);
+    console.error("❌ Swap failed:", err);
+    document.getElementById("result").innerText = "❌ Swap Failed: " + (err.reason || err.message || "Unknown error");
   }
 }
 
