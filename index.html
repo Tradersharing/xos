@@ -9,8 +9,6 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-
-  <!-- === Custom Header === -->
   <header class="custom-header">
     <div class="title">
       <span class="blue">Trader</span><span class="red">Sharing</span>
@@ -23,7 +21,6 @@
       <div class="wallet-status" id="walletStatus">Wallet not connected</div>
       <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
 
-      <!-- Swap Box -->
       <div class="swap-box">
         <div class="token-row">
           <button onclick="openTokenSelector('tokenIn')" id="tokenInBtn">Select Token</button>
@@ -35,10 +32,14 @@
         </div>
       </div>
 
+      <input type="hidden" id="tokenIn">
+      <input type="hidden" id="tokenOut">
+
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
       <div id="result"></div>
+    </div>
+  </div>
 
-      
   <div id="liquidity" class="page">
     <div class="page-inner">
       <h2>💧 Liquidity</h2>
@@ -78,7 +79,6 @@
     <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
 
-  <!-- === Token Selector Popup === -->
   <div id="tokenSelector" class="popup hidden">
     <div class="popup-inner">
       <div class="popup-header">
@@ -90,15 +90,12 @@
 
       <div class="network-list">
         <span class="network active">XOS</span>
-        <span class="network">ETH</span>
-        <span class="network">MATIC</span>
-        <span class="network">ARB</span>
       </div>
 
       <div class="popular-tokens">
-        <button onclick="selectToken('0x...', 'XOS')">XOS</button>
-        <button onclick="selectToken('0x...', 'USDT')">USDT</button>
-        <button onclick="selectToken('0x...', 'WTEST')">WTEST</button>
+        <button onclick="selectToken('0x0000000000000000000000000000000000000000', 'XOS')">XOS</button>
+        <button onclick="selectToken('0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10', 'USDT')">USDT</button>
+        <button onclick="selectToken('0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02', 'USDC')">USDC</button>
       </div>
 
       <div id="tokenList" class="token-list"></div>
