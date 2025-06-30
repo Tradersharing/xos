@@ -1,22 +1,16 @@
 let provider, signer;
 
-// ✅ Chain ID resmi XOS Testnet
-const CHAIN_ID_DEC = 1267;
-const CHAIN_ID_HEX = "0x4F3";
+const XOS_CHAIN_ID = "0x4f3"; // ✅ 1267 desimal
+const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 
 const XOS_PARAMS = {
-  chainId: CHAIN_ID_HEX,
+  chainId: XOS_CHAIN_ID,
   chainName: "XOS Testnet",
-  nativeCurrency: {
-    name: "XOS",
-    symbol: "XOS",
-    decimals: 18
-  },
+  nativeCurrency: { name: "XOS", symbol: "XOS", decimals: 18 },
   rpcUrls: ["https://testnet-rpc.xoscan.io/"],
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 
 const tokenList = [
@@ -30,17 +24,17 @@ const routerAbi = [
 ];
 
 async function ensureXOSNetwork() {
-  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-  if (chainId !== CHAIN_ID_HEX) {
+  const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
+  if (currentChainId !== XOS_CHAIN_ID) {
     try {
       await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: CHAIN_ID_HEX }]
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: XOS_CHAIN_ID }]
       });
     } catch (switchError) {
       if (switchError.code === 4902) {
         await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
+          method: "wallet_addEthereumChain",
           params: [XOS_PARAMS]
         });
       } else {
@@ -52,7 +46,7 @@ async function ensureXOSNetwork() {
 }
 
 async function connectWallet() {
-  if (!window.ethereum) return alert("Install MetaMask dulu gan!");
+  if (!window.ethereum) return alert("Install MetaMask/OKX wallet dulu!");
   try {
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
@@ -62,11 +56,10 @@ async function connectWallet() {
     const balance = await provider.getBalance(address);
     const xosBalance = ethers.formatEther(balance);
 
-    document.getElementById("walletStatus").innerText =
-      `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
-    document.getElementById("btnSwap").disabled = false;
+    document.getElementById("walletStatus").innerText = `Connected: ${address.slice(0,6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
     document.getElementById("btnConnect").innerText = "Connected";
     document.getElementById("btnConnect").disabled = true;
+    document.getElementById("btnSwap").disabled = false;
 
     populateTokenDropdowns();
   } catch (err) {
@@ -81,13 +74,12 @@ function populateTokenDropdowns() {
   tokenIn.innerHTML = "";
   tokenOut.innerHTML = "";
   tokenList.forEach(token => {
-    const opt1 = new Option(token.symbol, token.address);
-    const opt2 = new Option(token.symbol, token.address);
-    tokenIn.appendChild(opt1);
-    tokenOut.appendChild(opt2);
+    tokenIn.appendChild(new Option(token.symbol, token.address));
+    tokenOut.appendChild(new Option(token.symbol, token.address));
   });
 }
 
+// === SWAP FUNCTION ===
 async function doSwap() {
   const amount = document.getElementById("amount").value;
   const tokenIn = document.getElementById("tokenIn").value;
@@ -103,8 +95,8 @@ async function doSwap() {
     if (tokenIn !== ethers.ZeroAddress) {
       const erc20Abi = ["function approve(address spender, uint amount) public returns (bool)"];
       const tokenContract = new ethers.Contract(tokenIn, erc20Abi, signer);
-      const tx = await tokenContract.approve(routerAddress, amountIn);
-      await tx.wait();
+      const txApprove = await tokenContract.approve(routerAddress, amountIn);
+      await txApprove.wait();
     }
 
     const tx = await router.exactInputSingle({
@@ -117,16 +109,14 @@ async function doSwap() {
       sqrtPriceLimitX96: 0
     });
     const receipt = await tx.wait();
-    document.getElementById("result").innerHTML =
-      `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
+    document.getElementById("result").innerHTML = `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
   } catch (err) {
     console.error("Swap gagal:", err);
-    document.getElementById("result").innerText =
-      "❌ Swap gagal: " + (err.reason || err.message);
+    document.getElementById("result").innerText = "❌ Swap gagal: " + (err.reason || err.message);
   }
 }
 
-// === TOKEN SELECTOR ===
+// === POPUP LOGIC ===
 let currentTargetSelect = null;
 
 function openTokenSelector(targetId) {
@@ -146,22 +136,21 @@ function renderTokenList() {
   listEl.innerHTML = "";
 
   tokenList.forEach(t => {
-    const address = t.address;
     const symbol = t.symbol;
-    if (!symbol.toLowerCase().includes(search) && !address.toLowerCase().includes(search)) return;
+    const address = t.address;
+    if (!symbol.toLowerCase().includes(search)) return;
 
-    const el = document.createElement("div");
-    el.className = "token-item";
-    el.onclick = () => selectToken(address, symbol);
-    el.innerHTML = `<div class="name">${symbol}</div>`;
-    listEl.appendChild(el);
+    const btn = document.createElement("button");
+    btn.innerHTML = `<b>${symbol}</b>`;
+    btn.onclick = () => selectToken(address, symbol);
+    listEl.appendChild(btn);
   });
 }
 
-document.getElementById("searchToken").addEventListener("input", renderTokenList);
-
 function selectToken(address, symbol) {
   const select = document.getElementById(currentTargetSelect);
+  const button = document.getElementById(currentTargetSelect + "Btn");
+
   let found = false;
   for (const opt of select.options) {
     if (opt.value === address) {
@@ -176,12 +165,11 @@ function selectToken(address, symbol) {
     select.selectedIndex = select.options.length - 1;
   }
 
-  // Update tombol tampilan agar nama token tampil
-  const btnId = currentTargetSelect + "Btn";
-  document.getElementById(btnId).innerText = symbol;
+  if (button) button.innerText = symbol;
   closeTokenSelector();
 }
 
+// === TAB LOGIC ===
 function switchPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -191,4 +179,5 @@ function switchPage(id, btn) {
 
 window.addEventListener("load", () => {
   populateTokenDropdowns();
+  document.getElementById("searchToken").addEventListener("input", renderTokenList);
 });
