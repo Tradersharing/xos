@@ -1,7 +1,7 @@
 // ==== GLOBAL STATE ====
 let provider, signer, currentTargetSelect = "";
 
-const CHAIN_ID_HEX = "0x4F3"; // ✅ 1267 (dari screenshot)
+const CHAIN_ID_HEX = "0x4F3"; // ✅ 1267
 const XOS_PARAMS = {
   chainId: CHAIN_ID_HEX,
   chainName: "XOS Testnet",
@@ -18,13 +18,12 @@ const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
   "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
 ];
+
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" }
 ];
-
-
 
 // ==== CONNECT WALLET ====
 async function connectWallet() {
@@ -77,18 +76,44 @@ function populateTokenDropdowns() {
   });
 }
 
-// ==== OPEN TOKEN SELECTOR ====
+// ==== OPEN/CLOSE POPUP SELECTOR ====
 function openTokenSelector(target) {
   currentTargetSelect = target;
   document.getElementById("tokenSelector").classList.remove("hidden");
+  renderTokenList(); // load saldo dalam popup
 }
 
 function closeTokenSelector() {
   document.getElementById("tokenSelector").classList.add("hidden");
 }
 
+// ==== RENDER LIST TOKEN DI POPUP DENGAN SALDO ====
+async function renderTokenList() {
+  const listEl = document.getElementById("tokenList");
+  listEl.innerHTML = "";
+
+  for (const token of tokenList) {
+    const balance = await getTokenBalance(token.address);
+    const el = document.createElement("button");
+    el.className = "token-select-button";
+    el.innerHTML = `<div style="display:flex;justify-content:space-between">
+      <span>${token.symbol}</span>
+      <span style="font-size:13px;color:#666;">${balance}</span>
+    </div>`;
+    el.onclick = () => selectToken(token.address, token.symbol);
+    listEl.appendChild(el);
+  }
+}
+
 // ==== SELECT TOKEN ====
 async function selectToken(address, symbol) {
+  const other = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
+  const otherVal = document.getElementById(other).value;
+  if (address === otherVal) {
+    alert("⚠️ Token tidak boleh sama!");
+    return;
+  }
+
   const btn = document.getElementById(currentTargetSelect + "Btn");
   const balanceEl = document.getElementById(currentTargetSelect + "Balance");
 
@@ -106,7 +131,7 @@ async function selectToken(address, symbol) {
   updateRatePreview();
 }
 
-// ==== GET TOKEN BALANCE ====
+// ==== GET SALDO ====
 async function getTokenBalance(tokenAddress) {
   if (!signer || !provider) return "0.00";
   try {
