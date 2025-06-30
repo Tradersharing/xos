@@ -281,30 +281,35 @@ h2 {
   padding: 20px 15px 10px;
   text-align: center;
 }
+
 .custom-header .title {
   font-size: 24px;
   font-weight: bold;
   font-family: 'Segoe UI', sans-serif;
 }
+
 .custom-header .title .blue {
   color: #00bfff;
 }
+
 .custom-header .title .red {
   color: #ff3b30;
 }
+
 .custom-header .subtitle {
   font-size: 13px;
   color: #ccc;
   margin-top: 5px;
 }
 
-/* === Swap Box Style (like Pancake) === */
+/* === Swap Box Style === */
 .swap-box {
   background: #f2f2f2;
   border-radius: 15px;
   padding: 15px;
   margin-top: 20px;
 }
+
 .token-row {
   display: flex;
   justify-content: space-between;
@@ -314,6 +319,7 @@ h2 {
   margin-bottom: 12px;
   padding: 10px;
 }
+
 .token-row input {
   border: none;
   background: transparent;
@@ -321,6 +327,7 @@ h2 {
   text-align: right;
   flex: 1;
 }
+
 .token-row button {
   background: #bbb;
   border: none;
@@ -329,6 +336,3 @@ h2 {
   border-radius: 10px;
   margin-right: 10px;
 }
-
-
-  
