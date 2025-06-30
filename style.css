@@ -336,3 +336,22 @@ h2 {
   border-radius: 10px;
   margin-right: 10px;
 }
+
+/* === Swap Result & Balance Text === */
+#result {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #10b981;
+  text-align: center;
+  word-break: break-word;
+}
+
+.balance-text, .token-balance {
+  font-size: 13px;
+  color: #666;
+  text-align: right;
+  margin-top: 4px;
+  display: block;
+}
+
+  
