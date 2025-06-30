@@ -28,12 +28,17 @@
         <div class="token-row">
           <button onclick="openTokenSelector('tokenIn')" id="tokenInBtn">Select Token</button>
           <input type="text" id="amount" placeholder="0.00">
+          <div id="tokenInBalance" class="balance-text"></div>
         </div>
+
         <div class="token-row">
           <button onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">Select Token</button>
           <input type="text" id="amountOut" placeholder="0.00" disabled>
+          <div id="tokenOutBalance" class="balance-text"></div>
         </div>
       </div>
+
+      <div id="ratePreview" class="rate-preview"></div>
 
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
       <div id="result"></div>
@@ -95,9 +100,7 @@
 
       <div class="network-list">
         <span class="network active">XOS</span>
-        <span class="network">ETH</span>
-        <span class="network">MATIC</span>
-        <span class="network">ARB</span>
+        
       </div>
 
       <div class="popular-tokens">
@@ -109,6 +112,10 @@
       <div id="tokenList" class="token-list"></div>
     </div>
   </div>
+
+  <!-- === Hidden Dropdowns (JS internal) === -->
+  <select id="tokenIn" style="display:none;"></select>
+  <select id="tokenOut" style="display:none;"></select>
 
 </body>
 </html>
