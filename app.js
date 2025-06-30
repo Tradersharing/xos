@@ -1,4 +1,4 @@
-// ✅ app.js FINAL XOS Terintegrasi — support swap native/erc20, dropdown aktif, popup pencarian token, auto detect network
+// ✅ app.js FINAL XOS Terintegrasi — support swap native/erc20, dropdown aktif, popup pencarian token, auto detect network + navigasi perbaikan
 
 let provider, signer;
 
@@ -33,16 +33,10 @@ async function ensureXOSNetwork() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== CHAIN_ID_HEX) {
     try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: CHAIN_ID_HEX }]
-      });
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
     } catch (switchError) {
       if (switchError.code === 4902) {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [XOS_PARAMS]
-        });
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
       } else {
         alert("Gagal switch jaringan");
         throw switchError;
