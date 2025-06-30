@@ -1,265 +1,302 @@
-// ==== GLOBAL STATE ====
-let provider, signer, currentTargetSelect = "";
-
-const CHAIN_ID_HEX = "0x4F3"; // ✅ 1267 (dari screenshot)
-const XOS_PARAMS = {
-  chainId: CHAIN_ID_HEX,
-  chainName: "XOS Testnet",
-  nativeCurrency: {
-    name: "XOS",
-    symbol: "XOS",
-    decimals: 18
-  },
-  rpcUrls: ["https://testnet-rpc.xoscan.io"],
-  blockExplorerUrls: ["https://testnet.xoscan.io"]
-};
-
-const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
-const routerAbi = [
-  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
-];
-const tokenList = [
-  { address: ethers.ZeroAddress, symbol: "XOS" },
-  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
-  { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" }
-];
-
-
-
-// ==== CONNECT WALLET ====
-async function connectWallet() {
-  try {
-    if (!window.ethereum) return alert("Please install MetaMask / OKX Wallet");
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    if (chainId !== CHAIN_ID_HEX) {
-      try {
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
-      } catch (e) {
-        if (e.code === 4902) {
-          await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
-        } else {
-          throw e;
-        }
-      }
-    }
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    const address = await signer.getAddress();
-    const xosBalance = await provider.getBalance(address);
-    const xosValue = ethers.formatEther(xosBalance);
-
-    document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(address)} | ${parseFloat(xosValue).toFixed(4)} XOS`;
-    document.getElementById("btnConnect").innerText = "Connected";
-    document.getElementById("btnSwap").disabled = false;
-    populateTokenDropdowns();
-  } catch (err) {
-    console.error(err);
-    alert("Failed to connect wallet");
-  }
+/* === GLOBAL STYLES === */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom right, #f0f4ff, #e8f0ff);
+  margin: 0;
+  padding: 0;
+  color: #1e1e2f;
+  transition: background-color 0.4s ease;
 }
 
-function shortenAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-function populateTokenDropdowns() {
-  const tokenIn = document.getElementById("tokenIn");
-  const tokenOut = document.getElementById("tokenOut");
-  tokenIn.innerHTML = "";
-  tokenOut.innerHTML = "";
-  tokenList.forEach(token => {
-    tokenIn.appendChild(new Option(token.symbol, token.address));
-    tokenOut.appendChild(new Option(token.symbol, token.address));
-  });
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-// ==== OPEN TOKEN SELECTOR ====
-function openTokenSelector(target) {
-  currentTargetSelect = target;
-  document.getElementById("tokenSelector").classList.remove("hidden");
-  renderTokenList();
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 16px;
+  margin-bottom: 12px;
 }
 
-function closeTokenSelector() {
-  document.getElementById("tokenSelector").classList.add("hidden");
+/* === HEADER === */
+.custom-header {
+  background: #0c0c2c;
+  padding: 20px 15px 10px;
+  text-align: center;
 }
 
-// ==== TOKEN LIST RENDER ====
-function renderTokenList() {
-  const listEl = document.getElementById("tokenList");
-  listEl.innerHTML = "";
-  tokenList.forEach(t => {
-    const el = document.createElement("div");
-    el.className = "token-item";
-    el.innerHTML = `<div class='name'>${t.symbol}</div>`;
-    el.onclick = () => selectToken(t.address, t.symbol);
-    listEl.appendChild(el);
-  });
+.custom-header .title {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-// ==== SELECT TOKEN ====
-async function selectToken(address, symbol) {
-  const select = document.getElementById(currentTargetSelect);
-  let found = false;
-  for (const opt of select.options) {
-    if (opt.value === address) {
-      select.selectedIndex = opt.index;
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    const opt = new Option(symbol, address);
-    select.appendChild(opt);
-    select.selectedIndex = select.options.length - 1;
-  }
-
-  const btn = document.getElementById(currentTargetSelect + "Btn");
-  if (btn) btn.innerText = symbol;
-
-  const balance = await getTokenBalance(address);
-  const balanceEl = document.getElementById(currentTargetSelect + "Balance");
-  if (balanceEl) balanceEl.innerText = `Balance: ${balance}`;
-
-  closeTokenSelector();
-
-  const tIn = document.getElementById("tokenIn").value;
-  const tOut = document.getElementById("tokenOut").value;
-  document.getElementById("btnSwap").disabled = (tIn === tOut || !tIn || !tOut);
-  updateRatePreview();
+.custom-header .title .blue {
+  color: #00bfff;
 }
 
-
-
-
-// ==== GET TOKEN BALANCE ====
-async function getTokenBalance(tokenAddress) {
-  if (!signer || !provider) return "0.00";
-  try {
-    const userAddress = await signer.getAddress();
-
-    if (tokenAddress.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
-      // Native XOS
-      const balance = await provider.getBalance(userAddress);
-      return parseFloat(ethers.formatEther(balance)).toFixed(4);
-    }
-
-    // Token ERC20
-    const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
-    const token = new ethers.Contract(tokenAddress, abi, provider);
-    const [rawBal, decimals] = await Promise.all([
-      token.balanceOf(userAddress),
-      token.decimals()
-    ]);
-    return parseFloat(ethers.formatUnits(rawBal, decimals)).toFixed(4);
-  } catch (e) {
-    console.error("❌ Error reading balance:", e);
-    return "0.00";
-  }
+.custom-header .title .red {
+  color: #ff3b30;
 }
 
-// ==== DO SWAP ====
-async function doSwap() {
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) return alert("Invalid input or same token!");
-
-  try {
-    const recipient = await signer.getAddress();
-
-    // Ambil decimals tokenIn (ERC20) jika bukan native
-    let decimals = 18;
-    if (tokenIn.toLowerCase() !== ethers.ZeroAddress.toLowerCase()) {
-      const token = new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider);
-      decimals = await token.decimals();
-    }
-    const amountIn = ethers.parseUnits(amount, decimals);
-
-    // Approve tokenIn jika ERC20
-    if (tokenIn.toLowerCase() !== ethers.ZeroAddress.toLowerCase()) {
-      const approveAbi = ["function approve(address spender, uint256 amount) public returns (bool)"];
-      const tokenContract = new ethers.Contract(tokenIn, approveAbi, signer);
-      const txApprove = await tokenContract.approve(routerAddress, amountIn);
-      await txApprove.wait();
-    }
-
-    // Panggil router swap
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const tx = await router.exactInputSingle({
-      tokenIn,
-      tokenOut,
-      fee: 3000,
-      recipient,
-      amountIn,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: 0
-    });
-
-    const receipt = await tx.wait();
-    document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
-  } catch (err) {
-    console.error("❌ Swap failed:", err);
-    document.getElementById("result").innerText = "❌ Swap Failed: " + (err.reason || err.message || "Unknown error");
-  }
+.custom-header .subtitle {
+  font-size: 13px;
+  color: #ccc;
+  margin-top: 5px;
 }
 
-// ==== RATE PREVIEW ====
-async function updateRatePreview() {
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) {
-    document.getElementById("ratePreview").innerText = "";
-    return;
-  }
-
-  try {
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const erc20Abi = ["function decimals() view returns (uint8)"];
-    const [decIn, decOut] = await Promise.all([
-      tokenIn === ethers.ZeroAddress ? 18 : new ethers.Contract(tokenIn, erc20Abi, provider).decimals(),
-      tokenOut === ethers.ZeroAddress ? 18 : new ethers.Contract(tokenOut, erc20Abi, provider).decimals()
-    ]);
-    const amountIn = ethers.parseUnits(amount, decIn);
-
-    const result = await router.callStatic.exactInputSingle({
-      tokenIn,
-      tokenOut,
-      fee: 3000,
-      recipient: await signer.getAddress(),
-      amountIn,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: 0
-    });
-
-    const rate = parseFloat(ethers.formatUnits(result, decOut)) / parseFloat(amount);
-    document.getElementById("ratePreview").innerText = `≈ 1 ${getSymbol(tokenIn)} ≈ ${rate.toFixed(4)} ${getSymbol(tokenOut)}`;
-  } catch (err) {
-    document.getElementById("ratePreview").innerText = "Rate unavailable";
-  }
+/* === SWAP CONTAINER === */
+.swap-container {
+  background-color: #ffffff;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: fadeInUp 0.6s ease-in-out;
 }
 
-function getSymbol(address) {
-  const token = tokenList.find(t => t.address === address);
-  return token ? token.symbol : "TOKEN";
+@keyframes fadeInUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-// ==== SWITCH PAGE ====
-function switchPage(id, el) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
-  el.classList.add("active");
+.wallet-status {
+  text-align: center;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #666;
 }
 
-// ==== INIT ====
-window.addEventListener("load", () => {
-  populateTokenDropdowns();
-  document.getElementById("amount").addEventListener("input", updateRatePreview);
-  document.getElementById("tokenIn").addEventListener("change", updateRatePreview);
-  document.getElementById("tokenOut").addEventListener("change", updateRatePreview);
-});
+#btnConnect {
+  background-color: #5b2eff;
+  color: #fff;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+#btnSwap {
+  background-color: #6c63ff;
+  color: #fff;
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* === SWAP BOX === */
+.swap-box {
+  background: #f2f2f2;
+  border-radius: 15px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e0e0e0;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  padding: 10px;
+}
+
+.token-row input {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  text-align: right;
+  flex: 1;
+}
+
+.token-row button {
+  background: #bbb;
+  border: none;
+  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 10px;
+  margin-right: 10px;
+}
+
+/* === BALANCE & RESULT === */
+.balance-text, .token-balance {
+  font-size: 13px;
+  color: #666;
+  text-align: right;
+  margin-top: 4px;
+  display: block;
+}
+
+#result {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #10b981;
+  text-align: center;
+  word-break: break-word;
+}
+
+.rate-preview {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* === TABS === */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0;
+  z-index: 10;
+}
+
+.tab-bar button {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+  flex: 1;
+}
+
+.tab-bar button.active {
+  color: #5b2eff;
+  font-weight: 600;
+}
+
+.page {
+  display: none;
+  padding-bottom: 60px;
+}
+
+.page.active {
+  display: block;
+}
+
+.page-inner {
+  padding: 20px;
+  max-width: 480px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  margin-top: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+h2 {
+  text-align: center;
+  color: #333;
+}
+
+/* === POPUP === */
+.popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.popup.hidden {
+  display: none;
+}
+
+.popup-inner {
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.popup-token {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+#searchToken {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.network-title {
+  font-size: 14px;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+/* === TOKEN GRID === */
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.token-card {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.token-card:hover {
+  background-color: #eaeaea;
+}
+
+.token-name {
+  font-weight: bold;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.token-balance {
+  font-size: 13px;
+  color: #666;
+}
+
+/* === ANIMATIONS === */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
