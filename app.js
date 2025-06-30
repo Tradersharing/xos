@@ -4,9 +4,10 @@ let provider, signer;
 
 const CHAIN_ID_DEC = 1629;
 const CHAIN_ID_HEX = "0x65D";
+const XOS_CHAIN_ID = CHAIN_ID_HEX;
 
 const XOS_PARAMS = {
-  chainId: CHAIN_ID_HEX,
+  chainId: XOS_CHAIN_ID,
   chainName: "XOS Testnet",
   nativeCurrency: {
     name: "XOS",
@@ -22,8 +23,7 @@ const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS", isNative: true },
-  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
-  { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
+  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" }
 ];
 
 const routerAbi = [
@@ -174,7 +174,7 @@ function switchPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
 window.addEventListener("load", () => {
