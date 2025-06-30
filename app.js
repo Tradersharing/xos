@@ -4,10 +4,9 @@ let provider, signer;
 
 const CHAIN_ID_DEC = 1629;
 const CHAIN_ID_HEX = "0x65D";
-const XOS_CHAIN_ID = CHAIN_ID_HEX;
 
 const XOS_PARAMS = {
-  chainId: XOS_CHAIN_ID,
+  chainId: CHAIN_ID_HEX,
   chainName: "XOS Testnet",
   nativeCurrency: {
     name: "XOS",
@@ -32,9 +31,9 @@ const routerAbi = [
 
 async function ensureXOSNetwork() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-  if (chainId !== XOS_CHAIN_ID) {
+  if (chainId !== CHAIN_ID_HEX) {
     try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: XOS_CHAIN_ID }] });
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
     } catch (switchError) {
       if (switchError.code === 4902) {
         await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
@@ -126,6 +125,16 @@ function openTokenSelector(targetId) {
   document.getElementById("tokenSelector").classList.remove("hidden");
   document.getElementById("searchToken").value = "";
   renderTokenList();
+
+  // sembunyikan network selain XOS
+  document.querySelectorAll(".network").forEach(n => {
+    n.style.display = n.textContent.trim() === "XOS" ? "inline-block" : "none";
+  });
+  // sembunyikan tombol populer selain XOS & USDT
+  document.querySelectorAll(".popular-tokens button").forEach(btn => {
+    const label = btn.textContent.trim();
+    if (label !== "XOS" && label !== "USDT") btn.style.display = "none";
+  });
 }
 
 function closeTokenSelector() {
@@ -174,7 +183,7 @@ function switchPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  btn.classList.add('active');
 }
 
 window.addEventListener("load", () => {
