@@ -8,20 +8,55 @@ body {
   transition: background-color 0.4s ease;
 }
 
-.header {
-  background-color: #ffffff;
-  color: #5b2eff;
-  padding: 16px;
-  font-size: 20px;
+button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
   font-weight: 600;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  animation: fadeInDown 0.5s ease-in-out;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-@keyframes fadeInDown {
-  from { transform: translateY(-20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+/* === HEADER === */
+.custom-header {
+  background: #0c0c2c;
+  padding: 20px 15px 10px;
+  text-align: center;
+}
+
+.custom-header .title {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.custom-header .title .blue {
+  color: #00bfff;
+}
+
+.custom-header .title .red {
+  color: #ff3b30;
+}
+
+.custom-header .subtitle {
+  font-size: 13px;
+  color: #ccc;
+  margin-top: 5px;
 }
 
 /* === SWAP CONTAINER === */
@@ -49,21 +84,6 @@ body {
   color: #666;
 }
 
-button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 #btnConnect {
   background-color: #5b2eff;
   color: #fff;
@@ -78,46 +98,63 @@ button:disabled {
   margin-top: 20px;
 }
 
-.input-section,
-.output-section {
-  margin-top: 12px;
+/* === SWAP BOX === */
+.swap-box {
+  background: #f2f2f2;
+  border-radius: 15px;
+  padding: 15px;
+  margin-top: 20px;
 }
 
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
-input, select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ccc;
+.token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e0e0e0;
   border-radius: 12px;
-  font-size: 16px;
   margin-bottom: 12px;
+  padding: 10px;
 }
 
-.token-button {
-  width: 100%;
-  padding: 12px;
-  background-color: #222;
-  border-radius: 12px;
-  color: #fff;
-  border: 1px solid #444;
-  font-size: 16px;
-  text-align: left;
-  transition: background-color 0.3s;
+.token-row input {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  text-align: right;
+  flex: 1;
 }
 
-.token-button:disabled {
-  background-color: #444;
-  opacity: 0.6;
+.token-row button {
+  background: #bbb;
+  border: none;
+  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 10px;
+  margin-right: 10px;
 }
 
-.token-button:hover:not(:disabled) {
-  background-color: #333;
+/* === BALANCE & RESULT === */
+.balance-text, .token-balance {
+  font-size: 13px;
+  color: #666;
+  text-align: right;
+  margin-top: 4px;
+  display: block;
+}
+
+#result {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #10b981;
+  text-align: center;
+  word-break: break-word;
+}
+
+.rate-preview {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
 }
 
 /* === TABS === */
@@ -175,10 +212,7 @@ h2 {
 /* === POPUP === */
 .popup {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
@@ -200,6 +234,11 @@ h2 {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
 }
 
+.popup-token {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 .popup-header {
   display: flex;
   justify-content: space-between;
@@ -212,146 +251,52 @@ h2 {
 #searchToken {
   width: 100%;
   padding: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   border-radius: 8px;
   border: 1px solid #ccc;
 }
 
-.network-list {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.network {
-  padding: 6px 10px;
-  background: #f2f2f2;
-  border-radius: 8px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.network.active {
-  background: #5b2eff;
-  color: #fff;
-}
-
-.popular-tokens {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.popular-tokens button {
-  background-color: #eee;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.token-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.token-list button {
-  width: 100%;
-  padding: 10px;
-  border: none;
-  background: #f9f9f9;
-  margin-bottom: 6px;
-  text-align: left;
-  border-radius: 10px;
-  cursor: pointer;
+.network-title {
   font-size: 14px;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 12px;
 }
 
+/* === TOKEN GRID === */
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.token-card {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.token-card:hover {
+  background-color: #eaeaea;
+}
+
+.token-name {
+  font-weight: bold;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.token-balance {
+  font-size: 13px;
+  color: #666;
+}
+
+/* === ANIMATIONS === */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-/* === Header === */
-.custom-header {
-  background: #0c0c2c;
-  padding: 20px 15px 10px;
-  text-align: center;
-}
-
-.custom-header .title {
-  font-size: 24px;
-  font-weight: bold;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.custom-header .title .blue {
-  color: #00bfff;
-}
-
-.custom-header .title .red {
-  color: #ff3b30;
-}
-
-.custom-header .subtitle {
-  font-size: 13px;
-  color: #ccc;
-  margin-top: 5px;
-}
-
-/* === Swap Box Style === */
-.swap-box {
-  background: #f2f2f2;
-  border-radius: 15px;
-  padding: 15px;
-  margin-top: 20px;
-}
-
-.token-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #e0e0e0;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  padding: 10px;
-}
-
-.token-row input {
-  border: none;
-  background: transparent;
-  font-size: 18px;
-  text-align: right;
-  flex: 1;
-}
-
-.token-row button {
-  background: #bbb;
-  border: none;
-  font-weight: bold;
-  padding: 8px 14px;
-  border-radius: 10px;
-  margin-right: 10px;
-}
-
-/* === Swap Result & Balance Text === */
-#result {
-  margin-top: 12px;
-  font-size: 14px;
-  color: #10b981;
-  text-align: center;
-  word-break: break-word;
-}
-
-.balance-text, .token-balance {
-  font-size: 13px;
-  color: #666;
-  text-align: right;
-  margin-top: 4px;
-  display: block;
-}
-
-  
