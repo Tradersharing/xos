@@ -20,7 +20,7 @@ const routerAbi = [
 ];
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS" },
-  { address: "0x4A28Df32C0ab6C9F1AeC67C1A7D5A7b0F25EBA10", symbol: "USDT" },
+  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" }
 ];
 
