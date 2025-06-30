@@ -28,13 +28,13 @@
         <div class="token-row">
           <button onclick="openTokenSelector('tokenIn')" id="tokenInBtn">Select Token</button>
           <input type="text" id="amount" placeholder="0.00">
-          <div id="tokenInBalance" class="balance-text"></div>
+          <div id="tokenInBalance" class="balance-text">Balance: 0</div>
         </div>
 
         <div class="token-row">
           <button onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">Select Token</button>
           <input type="text" id="amountOut" placeholder="0.00" disabled>
-          <div id="tokenOutBalance" class="balance-text"></div>
+          <div id="tokenOutBalance" class="balance-text">Balance: 0</div>
         </div>
       </div>
 
@@ -88,34 +88,34 @@
     <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
 
-  <!-- === Token Selector Popup === -->
+  <!-- === Token Selector Popup (Pancake Style) === -->
   <div id="tokenSelector" class="popup hidden">
-    <div class="popup-inner">
+    <div class="popup-inner popup-token">
       <div class="popup-header">
-        <span>Select a token</span>
+        <span>Select a Token</span>
         <button onclick="closeTokenSelector()">✖</button>
       </div>
 
-      <input type="text" id="searchToken" placeholder="Search name / address">
+      <div class="network-title">XOS Network</div>
 
-      <div class="network-list">
-        <span class="network active">XOS</span>
-        
+      <input type="text" id="searchToken" placeholder="Search name or address">
+
+      <div class="token-grid">
+        <div class="token-card" onclick="selectToken('0x0000000000000000000000000000000000000000','XOS')">
+          <div class="token-name">XOS</div>
+          <div id="bal_XOS" class="token-balance">Balance: 0</div>
+        </div>
+        <div class="token-card" onclick="selectToken('0x2CCDB83a043A32898496c1030880Eb2cB977CAbc','USDT')">
+          <div class="token-name">USDT</div>
+          <div id="bal_USDT" class="token-balance">Balance: 0</div>
+        </div>
+        <div class="token-card" onclick="selectToken('0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02','USDC')">
+          <div class="token-name">USDC</div>
+          <div id="bal_USDC" class="token-balance">Balance: 0</div>
+        </div>
       </div>
-
-      <div class="popular-tokens">
-        <button onclick="selectToken('0x2CCDB83a043A32898496c1030880Eb2cB977CAbc', 'USDT')">USDT</button>
-        <button onclick="selectToken('0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02', 'USDC')">USDC</button>
-        <button onclick="selectToken('0x0000000000000000000000000000000000000000', 'XOS')">XOS</button>
-      </div>
-
-      <div id="tokenList" class="token-list"></div>
     </div>
   </div>
-
-  <!-- === Hidden Dropdowns (JS internal) === -->
-  <select id="tokenIn" style="display:none;"></select>
-  <select id="tokenOut" style="display:none;"></select>
 
 </body>
 </html>
