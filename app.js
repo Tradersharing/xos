@@ -33,10 +33,16 @@ async function ensureXOSNetwork() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== CHAIN_ID_HEX) {
     try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: CHAIN_ID_HEX }]
+      });
     } catch (switchError) {
       if (switchError.code === 4902) {
-        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [XOS_PARAMS]
+        });
       } else {
         alert("Gagal switch jaringan");
         throw switchError;
@@ -125,16 +131,6 @@ function openTokenSelector(targetId) {
   document.getElementById("tokenSelector").classList.remove("hidden");
   document.getElementById("searchToken").value = "";
   renderTokenList();
-
-  // sembunyikan network selain XOS
-  document.querySelectorAll(".network").forEach(n => {
-    n.style.display = n.textContent.trim() === "XOS" ? "inline-block" : "none";
-  });
-  // sembunyikan tombol populer selain XOS & USDT
-  document.querySelectorAll(".popular-tokens button").forEach(btn => {
-    const label = btn.textContent.trim();
-    if (label !== "XOS" && label !== "USDT") btn.style.display = "none";
-  });
 }
 
 function closeTokenSelector() {
