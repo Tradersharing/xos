@@ -1,8 +1,9 @@
 // ✅ app.js FINAL XOS Terintegrasi — support swap native/erc20, dropdown aktif, popup pencarian token, auto detect network
 
 let provider, signer;
+const CHAIN_ID_DEC = 1629;
+const CHAIN_ID_HEX = "0x65D";
 
-const XOS_CHAIN_ID = "0x65D"; // 1629 decimal
 const XOS_PARAMS = {
   chainId: XOS_CHAIN_ID,
   chainName: "XOS Testnet",
