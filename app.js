@@ -1,9 +1,8 @@
-// ✅ app.js FINAL XOS Terintegrasi — support swap native/erc20, dropdown aktif, popup pencarian token, auto detect network
-
 let provider, signer;
 
-const CHAIN_ID_DEC = 1629;
-const CHAIN_ID_HEX = "0x65D";
+// ✅ Chain ID resmi XOS Testnet
+const CHAIN_ID_DEC = 1267;
+const CHAIN_ID_HEX = "0x4F3";
 
 const XOS_PARAMS = {
   chainId: CHAIN_ID_HEX,
@@ -13,7 +12,7 @@ const XOS_PARAMS = {
     symbol: "XOS",
     decimals: 18
   },
-  rpcUrls: ["https://xosrpc.com"],
+  rpcUrls: ["https://testnet-rpc.xoscan.io/"],
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
@@ -22,7 +21,8 @@ const explorerTxUrl = "https://testnet.xoscan.io/tx/";
 
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS", isNative: true },
-  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" }
+  { address: "0x4a28dF32C0Ab6C9F1aEC67c1A7d5a7b0f25Eba10", symbol: "USDT" },
+  { address: "0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02", symbol: "USDC" }
 ];
 
 const routerAbi = [
@@ -33,10 +33,16 @@ async function ensureXOSNetwork() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== CHAIN_ID_HEX) {
     try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: CHAIN_ID_HEX }]
+      });
     } catch (switchError) {
       if (switchError.code === 4902) {
-        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [XOS_PARAMS]
+        });
       } else {
         alert("Gagal switch jaringan");
         throw switchError;
@@ -56,7 +62,8 @@ async function connectWallet() {
     const balance = await provider.getBalance(address);
     const xosBalance = ethers.formatEther(balance);
 
-    document.getElementById("walletStatus").innerText = `Connected: ${address.slice(0,6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
+    document.getElementById("walletStatus").innerText =
+      `Connected: ${address.slice(0, 6)}...${address.slice(-4)} | ${parseFloat(xosBalance).toFixed(4)} XOS`;
     document.getElementById("btnSwap").disabled = false;
     document.getElementById("btnConnect").innerText = "Connected";
     document.getElementById("btnConnect").disabled = true;
@@ -66,12 +73,6 @@ async function connectWallet() {
     console.error(err);
     alert("Gagal connect wallet");
   }
-}
-
-// Auto update jika akun atau jaringan berubah
-if (window.ethereum) {
-  window.ethereum.on('accountsChanged', connectWallet);
-  window.ethereum.on('chainChanged', () => window.location.reload());
 }
 
 function populateTokenDropdowns() {
@@ -116,10 +117,12 @@ async function doSwap() {
       sqrtPriceLimitX96: 0
     });
     const receipt = await tx.wait();
-    document.getElementById("result").innerHTML = `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
+    document.getElementById("result").innerHTML =
+      `✅ Swap sukses: <a href="${explorerTxUrl}${receipt.hash}" target="_blank">${receipt.hash}</a>`;
   } catch (err) {
     console.error("Swap gagal:", err);
-    document.getElementById("result").innerText = "❌ Swap gagal: " + (err.reason || err.message);
+    document.getElementById("result").innerText =
+      "❌ Swap gagal: " + (err.reason || err.message);
   }
 }
 
@@ -143,9 +146,9 @@ function renderTokenList() {
   listEl.innerHTML = "";
 
   tokenList.forEach(t => {
-    const symbol = t.symbol;
     const address = t.address;
-    if (!symbol.toLowerCase().includes(search)) return;
+    const symbol = t.symbol;
+    if (!symbol.toLowerCase().includes(search) && !address.toLowerCase().includes(search)) return;
 
     const el = document.createElement("div");
     el.className = "token-item";
@@ -159,8 +162,6 @@ document.getElementById("searchToken").addEventListener("input", renderTokenList
 
 function selectToken(address, symbol) {
   const select = document.getElementById(currentTargetSelect);
-  const btn = document.getElementById(currentTargetSelect + "Btn");
-
   let found = false;
   for (const opt of select.options) {
     if (opt.value === address) {
@@ -169,15 +170,15 @@ function selectToken(address, symbol) {
       break;
     }
   }
-
   if (!found) {
     const opt = new Option(symbol, address);
     select.appendChild(opt);
     select.selectedIndex = select.options.length - 1;
   }
 
-  if (btn) btn.innerText = symbol;
-
+  // Update tombol tampilan agar nama token tampil
+  const btnId = currentTargetSelect + "Btn";
+  document.getElementById(btnId).innerText = symbol;
   closeTokenSelector();
 }
 
