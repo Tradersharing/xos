@@ -79,6 +79,12 @@ function populateTokenDropdowns() {
   });
 }
 
+
+
+
+
+
+
 // === SWAP FUNCTION ===
 async function doSwap() {
   const amount = document.getElementById("amount").value;
@@ -136,38 +142,34 @@ function renderTokenList() {
   listEl.innerHTML = "";
 
   tokenList.forEach(t => {
-    const symbol = t.symbol;
     const address = t.address;
+    const symbol = t.symbol;
+
     if (!symbol.toLowerCase().includes(search)) return;
 
-    const btn = document.createElement("button");
-    btn.innerHTML = `<b>${symbol}</b>`;
-    btn.onclick = () => selectToken(address, symbol);
-    listEl.appendChild(btn);
+    const el = document.createElement("button");
+    el.className = "token-list-item";
+    el.innerText = symbol;
+    el.onclick = () => selectToken(address, symbol);
+    listEl.appendChild(el);
   });
 }
 
+
+
+
 function selectToken(address, symbol) {
-  const select = document.getElementById(currentTargetSelect);
-  const button = document.getElementById(currentTargetSelect + "Btn");
+  const btn = document.getElementById(currentTargetSelect + "Btn");
+  btn.innerText = symbol;
+  btn.setAttribute("data-address", address);
 
-  let found = false;
-  for (const opt of select.options) {
-    if (opt.value === address) {
-      select.selectedIndex = opt.index;
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    const opt = new Option(symbol, address);
-    select.appendChild(opt);
-    select.selectedIndex = select.options.length - 1;
-  }
+  // Update value di hidden input (optional)
+  const hiddenInput = document.getElementById(currentTargetSelect);
+  hiddenInput.setAttribute("data-address", address);
 
-  if (button) button.innerText = symbol;
   closeTokenSelector();
 }
+    
 
 // === TAB LOGIC ===
 function switchPage(id, btn) {
