@@ -26,13 +26,19 @@
 
       <div class="swap-box">
         <div class="token-row">
-          <button onclick="openTokenSelector('tokenIn')" id="tokenInBtn">Select Token</button>
+          <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
+            <img src="assets/icons/blank.png" alt="" />
+            <span>Select Token</span>
+          </button>
           <input type="text" id="amount" placeholder="0.00">
           <div id="tokenInBalance" class="balance-text">Balance: 0</div>
         </div>
 
         <div class="token-row">
-          <button onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">Select Token</button>
+          <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
+            <img src="assets/icons/blank.png" alt="" />
+            <span>Select Token</span>
+          </button>
           <input type="text" id="amountOut" placeholder="0.00" disabled>
           <div id="tokenOutBalance" class="balance-text">Balance: 0</div>
         </div>
@@ -91,7 +97,7 @@
     <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
 
-  <!-- === Token Selector Popup (DYNAMIC with JS) === -->
+  <!-- === Token Selector Popup (MODERN LIST) === -->
   <div id="tokenSelector" class="popup hidden">
     <div class="popup-inner popup-token">
       <div class="popup-header">
@@ -101,10 +107,10 @@
 
       <div class="network-title">XOS Network</div>
       <input type="text" id="searchToken" placeholder="Search name or address">
-      
-      <!-- This is where JS renders the tokens -->
-      <div id="tokenList" class="token-grid">
-        <!-- Dynamically injected by app.js -->
+
+      <!-- Modern token list -->
+      <div id="tokenList" class="token-list">
+        <!-- Injected via JS: each .token-item -->
       </div>
     </div>
   </div>
