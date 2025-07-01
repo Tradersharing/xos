@@ -91,7 +91,7 @@
     <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
 
-  <!-- === Token Selector Popup (Pancake Style) === -->
+  <!-- === Token Selector Popup (DYNAMIC with JS) === -->
   <div id="tokenSelector" class="popup hidden">
     <div class="popup-inner popup-token">
       <div class="popup-header">
@@ -101,24 +101,10 @@
 
       <div class="network-title">XOS Network</div>
       <input type="text" id="searchToken" placeholder="Search name or address">
-
-      <div class="token-grid">
-        <div class="token-card" onclick="selectToken('0x0000000000000000000000000000000000000000','XOS')">
-          <div class="token-name">XOS</div>
-          <div id="bal_XOS" class="token-balance">Balance: 0</div>
-        </div>
-        <div class="token-card" onclick="selectToken('0x2CCDB83a043A32898496c1030880Eb2cB977CAbc','USDT')">
-          <div class="token-name">USDT</div>
-          <div id="bal_USDT" class="token-balance">Balance: 0</div>
-        </div>
-        <div class="token-card" onclick="selectToken('0x6d2aF57aAA70a10a145C5E5569f6E2f087D94e02','USDC')">
-          <div class="token-name">USDC</div>
-          <div id="bal_USDC" class="token-balance">Balance: 0</div>
-        </div>
-        <div class="token-card" onclick="selectToken('0xb129536147c0CA420490d6b68d5bb69D7Bc2c151','Tswap')">
-          <div class="token-name">Tswap</div>
-          <div id="bal_Tswap" class="token-balance">Balance: 0</div>
-        </div>
+      
+      <!-- This is where JS renders the tokens -->
+      <div id="tokenList" class="token-grid">
+        <!-- Dynamically injected by app.js -->
       </div>
     </div>
   </div>
