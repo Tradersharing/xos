@@ -15,7 +15,7 @@
     <div class="title">
       <span class="blue">Trader</span><span class="red">Sharing</span>
     </div>
-    <div class="subtitle">The Profesional Swap Token XOS-Testnet</div>
+    <div class="subtitle">The Professional Swap Token XOS-Testnet</div>
   </header>
 
   <!-- === Swap Page === -->
@@ -27,33 +27,34 @@
       <div class="swap-box">
         <div class="token-row">
           <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
-            <span>Select Token ⏷</span>
+            <img src="assets/icons/blank.png" alt="">
+            <span>Select Token</span>
           </button>
-          <input type="text" id="amount" placeholder="0.00" value="0">
+          <input type="text" id="amount" placeholder="0.00">
+          <div id="tokenInBalance" class="balance-text">Balance: <span class="loading">--</span></div>
         </div>
-        <div class="balance-text" id="tokenInBalance">Balance: <span class="token-balance">0</span></div>
 
         <div class="token-row">
           <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
-            <span>Select Token ⏷</span>
+            <img src="assets/icons/blank.png" alt="">
+            <span>Select Token</span>
           </button>
-          <input type="text" id="amountOut" placeholder="0.00" value="0" disabled>
+          <input type="text" id="amountOut" placeholder="0.00" disabled>
+          <div id="tokenOutBalance" class="balance-text">Balance: <span class="loading">--</span></div>
         </div>
-        <div class="balance-text" id="tokenOutBalance">Balance: <span class="token-balance">0</span></div>
       </div>
 
-      <div class="rate-preview" id="ratePreview"></div>
-
-      <!-- Slippage Setting -->
-      <div style="text-align: right; margin-top: 10px;">
-        <label for="slippage" style="font-size: 13px; color: #888;">Slippage:</label>
-        <input type="number" id="slippage" min="0.1" step="0.1" value="0.5" style="width: 70px; padding: 6px; font-size: 13px; text-align: center; border-radius: 8px;">
+      <div style="margin: 8px 0; text-align: right;">
+        <label style="font-size: 13px;">Slippage</label>
+        <input type="number" id="slippage" placeholder="1" value="1" min="0" max="100" step="0.1" style="width: 70px; display: inline-block; font-size:13px;">
+        <span style="font-size:13px;">%</span>
       </div>
 
+      <div id="ratePreview" class="rate-preview"></div>
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
       <div id="result"></div>
 
-      <!-- Hidden input to store selected token address -->
+      <!-- Hidden input -->
       <input type="hidden" id="tokenIn">
       <input type="hidden" id="tokenOut">
     </div>
@@ -102,21 +103,16 @@
     <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
 
-  <!-- === Token Selector Popup (MODERN LIST) === -->
+  <!-- === Token Selector Popup === -->
   <div id="tokenSelector" class="popup hidden">
     <div class="popup-inner popup-token">
       <div class="popup-header">
         <span>Select a Token</span>
         <button onclick="closeTokenSelector()">✖</button>
       </div>
-
       <div class="network-title">XOS Network</div>
       <input type="text" id="searchToken" placeholder="Search name or address">
-
-      <!-- Modern token list -->
-      <div id="tokenList" class="token-list">
-        <!-- Injected via JS: each .token-item -->
-      </div>
+      <div id="tokenList" class="token-list"></div>
     </div>
   </div>
 
