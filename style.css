@@ -98,43 +98,52 @@ input, select {
   margin-top: 20px;
 }
 
-/* === SWAP BOX === */
+/* === SWAP BOX MODERN === */
 .swap-box {
-  background: #f2f2f2;
-  border-radius: 15px;
-  padding: 15px;
+  background: #f7f9fb;
+  border-radius: 16px;
+  padding: 16px;
   margin-top: 20px;
 }
 
 .token-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: #e0e0e0;
+  justify-content: space-between;
+  background: #e6ecf4;
   border-radius: 12px;
-  margin-bottom: 12px;
-  padding: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.token-select-btn {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.token-select-btn img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
 
 .token-row input {
+  flex: 1;
   border: none;
   background: transparent;
   font-size: 18px;
   text-align: right;
-  flex: 1;
+  color: #333;
 }
 
-.token-row button {
-  background: #bbb;
-  border: none;
-  font-weight: bold;
-  padding: 8px 14px;
-  border-radius: 10px;
-  margin-right: 10px;
-}
-
-/* === BALANCE & RESULT === */
-.balance-text, .token-balance {
+.balance-text {
   font-size: 13px;
   color: #666;
   text-align: right;
@@ -209,7 +218,7 @@ h2 {
   color: #333;
 }
 
-/* === POPUP === */
+/* === POPUP TOKEN MODERN LIST === */
 .popup {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -235,7 +244,7 @@ h2 {
 }
 
 .popup-token {
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
 }
 
@@ -263,31 +272,42 @@ h2 {
   margin-bottom: 12px;
 }
 
-/* === TOKEN GRID === */
-.token-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+.token-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.token-card {
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
+.token-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f4f6fa;
+  padding: 10px 14px;
   border-radius: 12px;
-  padding: 12px;
+  transition: background 0.2s ease;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.token-card:hover {
-  background-color: #eaeaea;
+.token-item:hover {
+  background: #e8ecf2;
 }
 
-.token-name {
-  font-weight: bold;
-  font-size: 15px;
-  margin-bottom: 4px;
+.token-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.token-info img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.token-symbol {
+  font-weight: 600;
+  color: #222;
 }
 
 .token-balance {
