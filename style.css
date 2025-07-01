@@ -1,7 +1,7 @@
 /* === GLOBAL STYLES === */
 body {
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(to bottom right, #f0f4ff, #e8f0ff);
+  background: #f8fbff;
   margin: 0;
   padding: 0;
   color: #1e1e2f;
@@ -11,11 +11,12 @@ body {
 button {
   padding: 12px 20px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 button:disabled {
@@ -30,6 +31,13 @@ input, select {
   border-radius: 12px;
   font-size: 16px;
   margin-bottom: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+input:focus, select:focus {
+  border-color: #00bfff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,191,255,0.2);
 }
 
 /* === HEADER === */
@@ -37,12 +45,14 @@ input, select {
   background: #0c0c2c;
   padding: 20px 15px 10px;
   text-align: center;
+  animation: fadeIn 0.8s ease-out;
 }
 
 .custom-header .title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: bold;
   font-family: 'Segoe UI', sans-serif;
+  letter-spacing: 0.5px;
 }
 
 .custom-header .title .blue {
@@ -61,14 +71,12 @@ input, select {
 
 /* === SWAP CONTAINER === */
 .swap-container {
-  background-color: #ffffff;
-  margin: 20px;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+  background: #ffffff;
+  margin: 24px auto;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05);
+  max-width: 420px;
   animation: fadeInUp 0.6s ease-in-out;
 }
 
@@ -85,35 +93,38 @@ input, select {
 }
 
 #btnConnect {
-  background-color: #5b2eff;
+  background: linear-gradient(90deg, #00bfff, #ff3b30);
   color: #fff;
+  font-weight: bold;
   width: 100%;
   margin-bottom: 16px;
 }
 
 #btnSwap {
-  background-color: #6c63ff;
+  background: linear-gradient(90deg, #ff3b30, #00bfff);
   color: #fff;
   width: 100%;
   margin-top: 20px;
+  font-size: 17px;
 }
 
-/* === SWAP BOX MODERN === */
 .swap-box {
-  background: #f7f9fb;
+  background: #f5f9fc;
   border-radius: 16px;
   padding: 16px;
   margin-top: 20px;
+  transition: all 0.3s ease;
 }
 
 .token-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #e6ecf4;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 14px;
+  background: #eef4fb;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+  border: 1px solid #e0eaf4;
 }
 
 .token-select-btn {
@@ -121,11 +132,16 @@ input, select {
   align-items: center;
   background: #fff;
   border: 1px solid #ccc;
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 8px 14px;
+  border-radius: 14px;
   font-weight: 600;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.token-select-btn:hover {
+  background: #f0f4ff;
 }
 
 .token-select-btn img {
@@ -138,9 +154,10 @@ input, select {
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 18px;
+  font-size: 20px;
   text-align: right;
-  color: #333;
+  color: #1e1e2f;
+  font-weight: 600;
 }
 
 .balance-text {
@@ -152,8 +169,8 @@ input, select {
 }
 
 #result {
-  margin-top: 12px;
-  font-size: 14px;
+  margin-top: 14px;
+  font-size: 15px;
   color: #10b981;
   text-align: center;
   word-break: break-word;
@@ -163,7 +180,8 @@ input, select {
   text-align: center;
   margin-top: 8px;
   font-size: 13px;
-  color: #666;
+  color: #555;
+  font-style: italic;
 }
 
 /* === TABS === */
@@ -187,10 +205,11 @@ input, select {
   color: #888;
   text-align: center;
   flex: 1;
+  transition: color 0.3s ease;
 }
 
 .tab-bar button.active {
-  color: #5b2eff;
+  color: #00bfff;
   font-weight: 600;
 }
 
@@ -218,11 +237,11 @@ h2 {
   color: #333;
 }
 
-/* === POPUP TOKEN MODERN LIST === */
+/* === POPUP === */
 .popup {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0,0,0,0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -235,12 +254,13 @@ h2 {
 }
 
 .popup-inner {
-  background-color: #fff;
-  padding: 24px;
-  border-radius: 16px;
+  background-color: #ffffff;
+  padding: 26px;
+  border-radius: 20px;
   width: 90%;
-  max-width: 400px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: popUp 0.3s ease-out;
 }
 
 .popup-token {
@@ -249,27 +269,21 @@ h2 {
 }
 
 .popup-header {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1e1e2f;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 600;
-  font-size: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 #searchToken {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid #ccc;
-}
-
-.network-title {
-  font-size: 14px;
-  color: #333;
-  font-weight: bold;
-  margin-bottom: 12px;
+  padding: 12px;
+  font-size: 15px;
+  margin-bottom: 16px;
 }
 
 .token-list {
@@ -279,44 +293,56 @@ h2 {
 }
 
 .token-item {
+  background: #f4f8fc;
+  padding: 12px 16px;
+  border-radius: 14px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  background: #f4f6fa;
-  padding: 10px 14px;
-  border-radius: 12px;
-  transition: background 0.2s ease;
+  align-items: center;
+  transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .token-item:hover {
-  background: #e8ecf2;
+  background: #e8f0ff;
+  transform: scale(1.01);
 }
 
 .token-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .token-info img {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
 }
 
 .token-symbol {
-  font-weight: 600;
+  font-weight: 700;
   color: #222;
 }
 
 .token-balance {
   font-size: 13px;
-  color: #666;
+  color: #777;
 }
 
 /* === ANIMATIONS === */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes popUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
