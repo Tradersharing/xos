@@ -1,4 +1,4 @@
-/* === GLOBAL STYLES === */
+/* === GLOBAL === */
 body {
   font-family: 'Poppins', sans-serif;
   background: #f8fbff;
@@ -16,7 +16,7 @@ button {
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 button:disabled {
@@ -24,17 +24,17 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input, select {
+input {
   width: 100%;
   padding: 12px;
   border: 1px solid #ccc;
   border-radius: 12px;
   font-size: 16px;
   margin-bottom: 12px;
-  transition: all 0.2s ease-in-out;
+  transition: 0.2s ease;
 }
 
-input:focus, select:focus {
+input:focus {
   border-color: #00bfff;
   outline: none;
   box-shadow: 0 0 0 3px rgba(0,191,255,0.2);
@@ -55,14 +55,8 @@ input:focus, select:focus {
   letter-spacing: 0.5px;
 }
 
-.custom-header .title .blue {
-  color: #00bfff;
-}
-
-.custom-header .title .red {
-  color: #ff3b30;
-}
-
+.custom-header .blue { color: #00bfff; }
+.custom-header .red { color: #ff3b30; }
 .custom-header .subtitle {
   font-size: 13px;
   color: #ccc;
@@ -71,18 +65,13 @@ input:focus, select:focus {
 
 /* === SWAP CONTAINER === */
 .swap-container {
-  background: #ffffff;
+  background: #fff;
   margin: 24px auto;
   padding: 24px;
   border-radius: 20px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05);
   max-width: 420px;
   animation: fadeInUp 0.6s ease-in-out;
-}
-
-@keyframes fadeInUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
 }
 
 .wallet-status {
@@ -93,7 +82,7 @@ input:focus, select:focus {
 }
 
 #btnConnect {
-  background: linear-gradient(90deg, #00bfff, #ff3b30);
+  background: linear-gradient(135deg, #00bfff, #ff3b30);
   color: #fff;
   font-weight: bold;
   width: 100%;
@@ -101,7 +90,7 @@ input:focus, select:focus {
 }
 
 #btnSwap {
-  background: linear-gradient(90deg, #ff3b30, #00bfff);
+  background: linear-gradient(135deg, #ff3b30, #00bfff);
   color: #fff;
   width: 100%;
   margin-top: 20px;
@@ -113,9 +102,10 @@ input:focus, select:focus {
   border-radius: 16px;
   padding: 16px;
   margin-top: 20px;
-  transition: all 0.3s ease;
+  transition: 0.3s ease;
 }
 
+/* === TOKEN ROW === */
 .token-row {
   display: flex;
   align-items: center;
@@ -130,24 +120,25 @@ input:focus, select:focus {
 .token-select-btn {
   display: flex;
   align-items: center;
-  background: #fff;
-  border: 1px solid #ccc;
+  gap: 10px;
+  font-weight: 600;
   padding: 8px 14px;
   border-radius: 14px;
-  font-weight: 600;
-  gap: 10px;
+  background: #fff;
+  border: 1px solid #ccc;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: 0.2s ease-in-out;
 }
 
 .token-select-btn:hover {
   background: #f0f4ff;
 }
 
-.token-select-btn img {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+.token-select-btn::after {
+  content: "⏷";
+  font-size: 16px;
+  margin-left: 8px;
+  color: #666;
 }
 
 .token-row input {
@@ -165,9 +156,9 @@ input:focus, select:focus {
   color: #666;
   text-align: right;
   margin-top: 4px;
-  display: block;
 }
 
+/* === RATE & RESULT === */
 #result {
   margin-top: 14px;
   font-size: 15px;
@@ -190,7 +181,7 @@ input:focus, select:focus {
   bottom: 0;
   left: 0;
   width: 100%;
-  background-color: #fff;
+  background: #fff;
   border-top: 1px solid #ddd;
   display: flex;
   justify-content: space-around;
@@ -213,35 +204,11 @@ input:focus, select:focus {
   font-weight: 600;
 }
 
-.page {
-  display: none;
-  padding-bottom: 60px;
-}
-
-.page.active {
-  display: block;
-}
-
-.page-inner {
-  padding: 20px;
-  max-width: 480px;
-  margin: 0 auto;
-  background: #fff;
-  border-radius: 16px;
-  margin-top: 20px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-}
-
-h2 {
-  text-align: center;
-  color: #333;
-}
-
-/* === POPUP === */
+/* === POPUP TOKEN === */
 .popup {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -254,7 +221,7 @@ h2 {
 }
 
 .popup-inner {
-  background-color: #ffffff;
+  background: #fff;
   padding: 26px;
   border-radius: 20px;
   width: 90%;
@@ -263,19 +230,14 @@ h2 {
   animation: popUp 0.3s ease-out;
 }
 
-.popup-token {
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
 .popup-header {
   font-size: 18px;
   font-weight: bold;
+  margin-bottom: 14px;
   color: #1e1e2f;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
 }
 
 #searchToken {
@@ -299,8 +261,8 @@ h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.2s ease;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .token-item:hover {
@@ -330,19 +292,25 @@ h2 {
   color: #777;
 }
 
-/* === ANIMATIONS === */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.token-balance.loading::after {
+  content: ' ⏳';
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-left: 6px;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
+/* === ANIMATIONS === */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popUp {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeInUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
