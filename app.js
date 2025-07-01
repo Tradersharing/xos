@@ -1,15 +1,11 @@
 // ==== GLOBAL STATE ====
 let provider, signer, currentTargetSelect = "";
 
-const CHAIN_ID_HEX = "0x4F3"; // ✅ 1267
+const CHAIN_ID_HEX = "0x4F3";
 const XOS_PARAMS = {
   chainId: CHAIN_ID_HEX,
   chainName: "XOS Testnet",
-  nativeCurrency: {
-    name: "XOS",
-    symbol: "XOS",
-    decimals: 18
-  },
+  nativeCurrency: { name: "XOS", symbol: "XOS", decimals: 18 },
   rpcUrls: ["https://testnet-rpc.xoscan.io"],
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
@@ -18,6 +14,7 @@ const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
   "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
 ];
+
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
@@ -25,8 +22,18 @@ const tokenList = [
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap" }
 ];
 
+function getSymbol(address) {
+  const t = tokenList.find(x => x.address === address);
+  return t ? t.symbol : "TOKEN";
+}
 
-// ==== CONNECT WALLET ====
+function getSlippage() {
+  const el = document.getElementById("slippage");
+  const p = parseFloat(el?.value || "1");
+  return isNaN(p) ? 1 : p;
+}
+
+// ==== CONNECT ====
 async function connectWallet() {
   try {
     if (!window.ethereum) return alert("Please install MetaMask / OKX Wallet");
@@ -39,9 +46,7 @@ async function connectWallet() {
       } catch (e) {
         if (e.code === 4902) {
           await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [XOS_PARAMS] });
-        } else {
-          throw e;
-        }
+        } else throw e;
       }
     }
 
@@ -49,9 +54,8 @@ async function connectWallet() {
     signer = await provider.getSigner();
     const address = await signer.getAddress();
     const xosBalance = await provider.getBalance(address);
-    const xosValue = ethers.formatEther(xosBalance);
 
-    document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(address)} | ${parseFloat(xosValue).toFixed(4)} XOS`;
+    document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(address)} | ${parseFloat(ethers.formatEther(xosBalance)).toFixed(4)} XOS`;
     document.getElementById("btnConnect").innerText = "Connected";
     document.getElementById("btnSwap").disabled = false;
     populateTokenDropdowns();
@@ -61,48 +65,36 @@ async function connectWallet() {
   }
 }
 
-function shortenAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+function shortenAddress(a) {
+  return a.slice(0, 6) + "..." + a.slice(-4);
 }
 
-function populateTokenDropdowns() {
-  const tokenIn = document.getElementById("tokenIn");
-  const tokenOut = document.getElementById("tokenOut");
-  if (!tokenIn || !tokenOut) return;
-  tokenIn.innerHTML = "";
-  tokenOut.innerHTML = "";
-  tokenList.forEach(token => {
-    tokenIn.appendChild(new Option(token.symbol, token.address));
-    tokenOut.appendChild(new Option(token.symbol, token.address));
-  });
-}
-
-// ==== OPEN/CLOSE POPUP SELECTOR ====
+// ==== POPUP ====
 function openTokenSelector(target) {
   currentTargetSelect = target;
   document.getElementById("tokenSelector").classList.remove("hidden");
-  renderTokenList(); // load saldo dalam popup
+  renderTokenList();
 }
 
 function closeTokenSelector() {
   document.getElementById("tokenSelector").classList.add("hidden");
 }
 
-// ==== RENDER LIST TOKEN DI POPUP DENGAN SALDO ====
+// ==== RENDER TOKEN LIST ====
 async function renderTokenList() {
-  const listEl = document.getElementById("tokenList");
-  listEl.innerHTML = "";
-
-  for (const token of tokenList) {
-    const balance = await getTokenBalance(token.address);
-    const el = document.createElement("button");
-    el.className = "token-select-button";
-    el.innerHTML = `<div style="display:flex;justify-content:space-between">
-      <span>${token.symbol}</span>
-      <span style="font-size:13px;color:#666;">${balance}</span>
+  const el = document.getElementById("tokenList");
+  el.innerHTML = "";
+  for (const t of tokenList) {
+    el.innerHTML += `<div class="token-item" onclick="selectToken('${t.address}','${t.symbol}')">
+      <div class="token-info">
+        <img src="assets/icons/${t.symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
+        <div class="token-symbol">${t.symbol}</div>
+      </div>
+      <div class="token-balance" id="balance-${t.symbol}">Loading...</div>
     </div>`;
-    el.onclick = () => selectToken(token.address, token.symbol);
-    listEl.appendChild(el);
+    getTokenBalance(t.address).then(bal => {
+      document.getElementById(`balance-${t.symbol}`).innerText = `${bal}`;
+    });
   }
 }
 
@@ -110,20 +102,20 @@ async function renderTokenList() {
 async function selectToken(address, symbol) {
   const other = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
   const otherVal = document.getElementById(other).value;
-  if (address === otherVal) {
-    alert("⚠️ Token tidak boleh sama!");
-    return;
-  }
+  if (address === otherVal) return alert("⚠️ Token tidak boleh sama!");
 
-  const btn = document.getElementById(currentTargetSelect + "Btn");
+  document.getElementById(currentTargetSelect + "Btn").innerHTML = `
+    <img src="assets/icons/${symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
+    <span>${symbol}</span>
+  `;
+
   const balanceEl = document.getElementById(currentTargetSelect + "Balance");
+  balanceEl.innerHTML = `Balance: <span class="loading">Loading...</span>`;
+  getTokenBalance(address).then(b => {
+    balanceEl.innerText = `Balance: ${b}`;
+  });
 
-  if (btn) btn.innerText = symbol;
-  if (balanceEl) balanceEl.innerText = `Balance: ${await getTokenBalance(address)}`;
-
-  const input = document.getElementById(currentTargetSelect);
-  if (input) input.value = address;
-
+  document.getElementById(currentTargetSelect).value = address;
   closeTokenSelector();
 
   const tIn = document.getElementById("tokenIn").value;
@@ -132,26 +124,20 @@ async function selectToken(address, symbol) {
   updateRatePreview();
 }
 
-// ==== GET SALDO ====
-async function getTokenBalance(tokenAddress) {
+// ==== GET BALANCE ====
+async function getTokenBalance(addr) {
   if (!signer || !provider) return "0.00";
   try {
-    const userAddress = await signer.getAddress();
-
-    if (tokenAddress.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
-      const balance = await provider.getBalance(userAddress);
-      return parseFloat(ethers.formatEther(balance)).toFixed(4);
+    const user = await signer.getAddress();
+    if (addr.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
+      const bal = await provider.getBalance(user);
+      return parseFloat(ethers.formatEther(bal)).toFixed(4);
     }
-
     const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
-    const token = new ethers.Contract(tokenAddress, abi, provider);
-    const [rawBal, decimals] = await Promise.all([
-      token.balanceOf(userAddress),
-      token.decimals()
-    ]);
-    return parseFloat(ethers.formatUnits(rawBal, decimals)).toFixed(4);
-  } catch (e) {
-    console.error("❌ Error reading balance:", e);
+    const token = new ethers.Contract(addr, abi, provider);
+    const [raw, dec] = await Promise.all([token.balanceOf(user), token.decimals()]);
+    return parseFloat(ethers.formatUnits(raw, dec)).toFixed(4);
+  } catch {
     return "0.00";
   }
 }
@@ -166,35 +152,32 @@ async function doSwap() {
   try {
     const recipient = await signer.getAddress();
     let decimals = 18;
-    if (tokenIn.toLowerCase() !== ethers.ZeroAddress.toLowerCase()) {
-      const token = new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider);
-      decimals = await token.decimals();
+    if (tokenIn !== ethers.ZeroAddress) {
+      decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
     }
     const amountIn = ethers.parseUnits(amount, decimals);
 
-    if (tokenIn.toLowerCase() !== ethers.ZeroAddress.toLowerCase()) {
-      const approveAbi = ["function approve(address spender, uint256 amount) public returns (bool)"];
-      const tokenContract = new ethers.Contract(tokenIn, approveAbi, signer);
-      const txApprove = await tokenContract.approve(routerAddress, amountIn);
-      await txApprove.wait();
+    if (tokenIn !== ethers.ZeroAddress) {
+      const token = new ethers.Contract(tokenIn, ["function approve(address,uint256) returns (bool)"], signer);
+      await (await token.approve(routerAddress, amountIn)).wait();
     }
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
+    const rateResult = await router.callStatic.exactInputSingle({
+      tokenIn, tokenOut, fee: 3000, recipient, amountIn, amountOutMinimum: 0, sqrtPriceLimitX96: 0
+    });
+
+    const slippage = getSlippage();
+    const amountOutMinimum = rateResult - (rateResult * BigInt(Math.floor(slippage * 100)) / BigInt(10000));
+
     const tx = await router.exactInputSingle({
-      tokenIn,
-      tokenOut,
-      fee: 3000,
-      recipient,
-      amountIn,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: 0
+      tokenIn, tokenOut, fee: 3000, recipient, amountIn, amountOutMinimum, sqrtPriceLimitX96: 0
     });
 
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
-  } catch (err) {
-    console.error("❌ Swap failed:", err);
-    document.getElementById("result").innerText = "❌ Swap Failed: " + (err.reason || err.message || "Unknown error");
+  } catch (e) {
+    document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
   }
 }
 
@@ -203,10 +186,7 @@ async function updateRatePreview() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
   const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) {
-    document.getElementById("ratePreview").innerText = "";
-    return;
-  }
+  if (!amount || tokenIn === tokenOut) return document.getElementById("ratePreview").innerText = "";
 
   try {
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
@@ -216,35 +196,15 @@ async function updateRatePreview() {
       tokenOut === ethers.ZeroAddress ? 18 : new ethers.Contract(tokenOut, erc20Abi, provider).decimals()
     ]);
     const amountIn = ethers.parseUnits(amount, decIn);
-
     const result = await router.callStatic.exactInputSingle({
-      tokenIn,
-      tokenOut,
-      fee: 3000,
-      recipient: await signer.getAddress(),
-      amountIn,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: 0
+      tokenIn, tokenOut, fee: 3000, recipient: await signer.getAddress(), amountIn, amountOutMinimum: 0, sqrtPriceLimitX96: 0
     });
-
     const rate = parseFloat(ethers.formatUnits(result, decOut)) / parseFloat(amount);
+    document.getElementById("amountOut").value = parseFloat(ethers.formatUnits(result, decOut)).toFixed(4);
     document.getElementById("ratePreview").innerText = `≈ 1 ${getSymbol(tokenIn)} ≈ ${rate.toFixed(4)} ${getSymbol(tokenOut)}`;
-  } catch (err) {
+  } catch {
     document.getElementById("ratePreview").innerText = "Rate unavailable";
   }
-}
-
-function getSymbol(address) {
-  const token = tokenList.find(t => t.address === address);
-  return token ? token.symbol : "TOKEN";
-}
-
-// ==== SWITCH PAGE ====
-function switchPage(id, el) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
-  el.classList.add("active");
 }
 
 // ==== INIT ====
@@ -252,3 +212,7 @@ window.addEventListener("load", () => {
   populateTokenDropdowns();
   document.getElementById("amount").addEventListener("input", updateRatePreview);
 });
+
+function populateTokenDropdowns() {
+  // Placeholder; actual dropdown handled in popup
+}
