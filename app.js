@@ -1,3 +1,4 @@
+
 // ==== TradersharingSwap DApp (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
 
 let provider, signer, currentTargetSelect = "";
@@ -11,9 +12,9 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-const routerAddress = "0x89ff1b118ec9315295801c594983ee190b9a4598"; // ✅ Final Router
+const routerAddress = "0x89ff1b118ec9315295801c594983ee190b9a4598";
 const routerAbi = [
-  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
+  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external"
 ];
 
 const tokenList = [
@@ -87,7 +88,7 @@ async function renderTokenList() {
         <img src="assets/icons/${t.symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
         <div class="token-symbol">${t.symbol}</div>
       </div>
-      <div class="token-balance" id="balance-${t.symbol}"></div>
+      <div class="token-balance" id="balance-${t.symbol}">...</div>
     </div>`;
     el.insertAdjacentHTML("beforeend", html);
     getTokenBalance(t.address).then(bal => {
@@ -136,7 +137,6 @@ async function getTokenBalance(addr) {
   }
 }
 
-// ==== DO SWAP ====
 async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
@@ -149,7 +149,6 @@ async function doSwap() {
     const decimals = await tokenDecimals.decimals();
     const amountIn = ethers.parseUnits(amount, decimals);
 
-    // ✅ Approve dulu jika tokenIn bukan native
     if (tokenIn !== ethers.ZeroAddress) {
       const token = new ethers.Contract(tokenIn, ["function approve(address,uint256) returns (bool)"], signer);
       const tx = await token.approve(routerAddress, amountIn);
@@ -157,8 +156,6 @@ async function doSwap() {
     }
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
-
-    // ✅ Estimasi minimum output (sementara = 0 untuk uji coba)
     const amountOutMin = 0;
 
     const tx = await router.swapExactTokensForTokens(
@@ -177,52 +174,9 @@ async function doSwap() {
   }
 }
 
-
-    // Router dan panggilan swap
-    const router = new ethers.Contract(routerAddress, [
-      "function swapExactTokensForTokens(uint,uint,address,address,address) external"
-    ], signer);
-
-    const tx = await router.swapExactTokensForTokens(
-      amountIn,
-      amountOutMin,
-      tokenIn,
-      tokenOut,
-      recipient
-    );
-
-    const receipt = await tx.wait();
-    document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
-  } catch (e) {
-    document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
-  }
-}
-
-
-
 async function updateRatePreview() {
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) return document.getElementById("ratePreview").innerText = "";
-
-  try {
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const erc20Abi = ["function decimals() view returns (uint8)"];
-    const [decIn, decOut] = await Promise.all([
-      tokenIn === ethers.ZeroAddress ? 18 : new ethers.Contract(tokenIn, erc20Abi, provider).decimals(),
-      tokenOut === ethers.ZeroAddress ? 18 : new ethers.Contract(tokenOut, erc20Abi, provider).decimals()
-    ]);
-    const amountIn = ethers.parseUnits(amount, decIn);
-    const result = await router.callStatic.exactInputSingle({
-      tokenIn, tokenOut, fee: 3000, recipient: await signer.getAddress(), amountIn, amountOutMinimum: 0, sqrtPriceLimitX96: 0
-    });
-    const rate = parseFloat(ethers.formatUnits(result, decOut)) / parseFloat(amount);
-    document.getElementById("amountOut").value = parseFloat(ethers.formatUnits(result, decOut)).toFixed(4);
-    document.getElementById("ratePreview").innerText = `≈ 1 ${getSymbol(tokenIn)} ≈ ${rate.toFixed(4)} ${getSymbol(tokenOut)}`;
-  } catch {
-    document.getElementById("ratePreview").innerText = "Rate unavailable";
-  }
+  document.getElementById("ratePreview").innerText = "Rate unavailable";
+  document.getElementById("amountOut").value = "";
 }
 
 window.addEventListener("load", () => {
