@@ -140,15 +140,13 @@ async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
   const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) return alert("Invalid input or same token!");
+  if (!amount || tokenIn === tokenOut) return alert("Invalid input!");
 
   try {
     const recipient = await signer.getAddress();
-    let decimals = 18;
-    if (tokenIn !== ethers.ZeroAddress) {
-      decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
-    }
+    const decimals = tokenIn === ethers.ZeroAddress ? 18 : await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
     const amountIn = ethers.parseUnits(amount, decimals);
+    const amountOutMin = 0n; // sementara 0, bisa nanti dihitung
 
     if (tokenIn !== ethers.ZeroAddress) {
       const token = new ethers.Contract(tokenIn, ["function approve(address,uint256) returns (bool)"], signer);
@@ -156,23 +154,14 @@ async function doSwap() {
     }
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const rateResult = await router.callStatic.exactInputSingle({
-      tokenIn, tokenOut, fee: 3000, recipient, amountIn, amountOutMinimum: 0, sqrtPriceLimitX96: 0
-    });
-
-    const slippage = getSlippage();
-    const amountOutMinimum = rateResult - (rateResult * BigInt(Math.floor(slippage * 100)) / BigInt(10000));
-
-    const tx = await router.exactInputSingle({
-      tokenIn, tokenOut, fee: 3000, recipient, amountIn, amountOutMinimum, sqrtPriceLimitX96: 0
-    });
-
+    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, tokenIn, tokenOut, recipient);
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (e) {
     document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
   }
 }
+
 
 async function updateRatePreview() {
   const tokenIn = document.getElementById("tokenIn").value;
