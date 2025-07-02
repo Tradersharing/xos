@@ -141,23 +141,42 @@ async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
   const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) return alert("Invalid input or same token!");
+  if (!amount || tokenIn === tokenOut) return alert("⚠️ Invalid input or same token!");
 
   try {
     const recipient = await signer.getAddress();
-    let decimals = 18;
-    if (tokenIn !== ethers.ZeroAddress) {
-      decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
-    }
-
+    const tokenDecimals = new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider);
+    const decimals = await tokenDecimals.decimals();
     const amountIn = ethers.parseUnits(amount, decimals);
-    const amountOutMin = 0n; // bisa kamu ganti logic slippage nanti
 
-    // Approve jika tokenIn bukan XOS
+    // ✅ Approve dulu jika tokenIn bukan native
     if (tokenIn !== ethers.ZeroAddress) {
       const token = new ethers.Contract(tokenIn, ["function approve(address,uint256) returns (bool)"], signer);
-      await (await token.approve(routerAddress, amountIn)).wait();
+      const tx = await token.approve(routerAddress, amountIn);
+      await tx.wait();
     }
+
+    const router = new ethers.Contract(routerAddress, routerAbi, signer);
+
+    // ✅ Estimasi minimum output (sementara = 0 untuk uji coba)
+    const amountOutMin = 0;
+
+    const tx = await router.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      tokenIn,
+      tokenOut,
+      recipient
+    );
+
+    const receipt = await tx.wait();
+    document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
+  } catch (e) {
+    console.error(e);
+    document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
+  }
+}
+
 
     // Router dan panggilan swap
     const router = new ethers.Contract(routerAddress, [
