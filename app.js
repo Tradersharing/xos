@@ -1,4 +1,5 @@
-// ==== GLOBAL STATE ====
+// ==== TradersharingSwap DApp (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
+
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -10,7 +11,7 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
+const routerAddress = "0x89ff1b118ec9315295801c594983ee190b9a4598"; // ✅ Final Router
 const routerAbi = [
   "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) external payable returns (uint256)"
 ];
@@ -33,12 +34,10 @@ function getSlippage() {
   return isNaN(p) ? 1 : p;
 }
 
-// ==== CONNECT ====
 async function connectWallet() {
   try {
     if (!window.ethereum) return alert("Please install MetaMask / OKX Wallet");
     await window.ethereum.request({ method: 'eth_requestAccounts' });
-
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
     if (chainId !== CHAIN_ID_HEX) {
       try {
@@ -69,7 +68,6 @@ function shortenAddress(a) {
   return a.slice(0, 6) + "..." + a.slice(-4);
 }
 
-// ==== POPUP ====
 function openTokenSelector(target) {
   currentTargetSelect = target;
   document.getElementById("tokenSelector").classList.remove("hidden");
@@ -80,25 +78,24 @@ function closeTokenSelector() {
   document.getElementById("tokenSelector").classList.add("hidden");
 }
 
-// ==== RENDER TOKEN LIST ====
 async function renderTokenList() {
   const el = document.getElementById("tokenList");
   el.innerHTML = "";
   for (const t of tokenList) {
-    el.innerHTML += `<div class="token-item" onclick="selectToken('${t.address}','${t.symbol}')">
+    const html = `<div class="token-item" onclick="selectToken('${t.address}','${t.symbol}')">
       <div class="token-info">
         <img src="assets/icons/${t.symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
         <div class="token-symbol">${t.symbol}</div>
       </div>
-      <div class="token-balance" id="balance-${t.symbol}">Loading...</div>
+      <div class="token-balance" id="balance-${t.symbol}"></div>
     </div>`;
+    el.insertAdjacentHTML("beforeend", html);
     getTokenBalance(t.address).then(bal => {
       document.getElementById(`balance-${t.symbol}`).innerText = `${bal}`;
     });
   }
 }
 
-// ==== SELECT TOKEN ====
 async function selectToken(address, symbol) {
   const other = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
   const otherVal = document.getElementById(other).value;
@@ -106,25 +103,22 @@ async function selectToken(address, symbol) {
 
   document.getElementById(currentTargetSelect + "Btn").innerHTML = `
     <img src="assets/icons/${symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
-    <span>${symbol}</span>
-  `;
+    <span>${symbol}</span>`;
 
   const balanceEl = document.getElementById(currentTargetSelect + "Balance");
-  balanceEl.innerHTML = `Balance: <span class="loading">Loading...</span>`;
+  balanceEl.innerHTML = "Balance: Loading...";
   getTokenBalance(address).then(b => {
     balanceEl.innerText = `Balance: ${b}`;
   });
 
   document.getElementById(currentTargetSelect).value = address;
   closeTokenSelector();
-
   const tIn = document.getElementById("tokenIn").value;
   const tOut = document.getElementById("tokenOut").value;
   document.getElementById("btnSwap").disabled = (tIn === tOut || !tIn || !tOut);
   updateRatePreview();
 }
 
-// ==== GET BALANCE ====
 async function getTokenBalance(addr) {
   if (!signer || !provider) return "0.00";
   try {
@@ -142,7 +136,6 @@ async function getTokenBalance(addr) {
   }
 }
 
-// ==== DO SWAP ====
 async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
@@ -181,7 +174,6 @@ async function doSwap() {
   }
 }
 
-// ==== RATE PREVIEW ====
 async function updateRatePreview() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
@@ -207,12 +199,11 @@ async function updateRatePreview() {
   }
 }
 
-// ==== INIT ====
 window.addEventListener("load", () => {
   populateTokenDropdowns();
   document.getElementById("amount").addEventListener("input", updateRatePreview);
 });
 
 function populateTokenDropdowns() {
-  // Placeholder; actual dropdown handled in popup
+  // handled by popup selector
 }
