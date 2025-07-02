@@ -136,31 +136,49 @@ async function getTokenBalance(addr) {
   }
 }
 
+// ==== DO SWAP ====
 async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
   const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) return alert("Invalid input!");
+  if (!amount || tokenIn === tokenOut) return alert("Invalid input or same token!");
 
   try {
     const recipient = await signer.getAddress();
-    const decimals = tokenIn === ethers.ZeroAddress ? 18 : await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
-    const amountIn = ethers.parseUnits(amount, decimals);
-    const amountOutMin = 0n; // sementara 0, bisa nanti dihitung
+    let decimals = 18;
+    if (tokenIn !== ethers.ZeroAddress) {
+      decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
+    }
 
+    const amountIn = ethers.parseUnits(amount, decimals);
+    const amountOutMin = 0n; // bisa kamu ganti logic slippage nanti
+
+    // Approve jika tokenIn bukan XOS
     if (tokenIn !== ethers.ZeroAddress) {
       const token = new ethers.Contract(tokenIn, ["function approve(address,uint256) returns (bool)"], signer);
       await (await token.approve(routerAddress, amountIn)).wait();
     }
 
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, tokenIn, tokenOut, recipient);
+    // Router dan panggilan swap
+    const router = new ethers.Contract(routerAddress, [
+      "function swapExactTokensForTokens(uint,uint,address,address,address) external"
+    ], signer);
+
+    const tx = await router.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      tokenIn,
+      tokenOut,
+      recipient
+    );
+
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (e) {
     document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
   }
 }
+
 
 
 async function updateRatePreview() {
