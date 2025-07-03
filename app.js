@@ -1,4 +1,3 @@
-
 // ==== TradersharingSwap DApp (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
 
 let provider, signer, currentTargetSelect = "";
@@ -14,7 +13,8 @@ const XOS_PARAMS = {
 
 const routerAddress = "0x89ff1b118ec9315295801c594983ee190b9a4598";
 const routerAbi = [
-  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external"
+  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external",
+  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external"
 ];
 
 const tokenList = [
@@ -31,7 +31,7 @@ function getSymbol(address) {
 
 function getSlippage() {
   const el = document.getElementById("slippage");
-  const p = parseFloat(el?.value || "1");
+  const p = parseFloat((el?.value || "1").replace(",", "."));
   return isNaN(p) ? 1 : p;
 }
 
@@ -140,50 +140,60 @@ async function getTokenBalance(addr) {
 async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
-  const amount = document.getElementById("amount").value;
-  if (!amount || tokenIn === tokenOut) return alert("⚠️ Invalid input or same token!");
+  let amountRaw = document.getElementById("amount").value;
+  amountRaw = amountRaw.replace(",", ".");
+
+  if (!ethers.isAddress(tokenIn) || !ethers.isAddress(tokenOut)) return alert("⚠️ Alamat token tidak valid.");
+  if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("⚠️ Jumlah token tidak valid.");
+  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("⚠️ Token tidak boleh sama.");
 
   try {
     const recipient = await signer.getAddress();
-    const tokenDecimals = new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider);
-    const decimals = await tokenDecimals.decimals();
-    const amountIn = ethers.parseUnits(amount, decimals);
+    const slippage = getSlippage();
+    const decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
+    const amountIn = ethers.parseUnits(amountRaw, decimals);
+    const minOut = amountIn * BigInt(100 - slippage) / 100n;
+    const amountOutMin = minOut < 1n ? 0n : minOut;
+    const path = [tokenIn, tokenOut];
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+    const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
     if (tokenIn !== ethers.ZeroAddress) {
-      const token = new ethers.Contract(tokenIn, ["function approve(address,uint256) returns (bool)"], signer);
-      const tx = await token.approve(routerAddress, amountIn);
-      await tx.wait();
+      const token = new ethers.Contract(tokenIn, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
+      const allowance = await token.allowance(recipient, routerAddress);
+      if (allowance < amountIn) {
+        const approveTx = await token.approve(routerAddress, amountIn);
+        await approveTx.wait();
+      }
     }
 
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const amountOutMin = 0;
+    try {
+      await router.swapExactTokensForTokens.estimateGas(amountIn, amountOutMin, path, recipient, deadline);
+    } catch (err) {
+      console.error("⛔ estimateGas error:", err);
+      document.getElementById("result").innerText = "❌ Swap gagal saat estimasi: " + (err.reason || err.message || "Unknown reason");
+      return;
+    }
 
-    const tx = await router.swapExactTokensForTokens(
-      amountIn,
-      amountOutMin,
-      tokenIn,
-      tokenOut,
-      recipient
-    );
-
+    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, recipient, deadline);
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (e) {
-    console.error(e);
+    console.error("❌ Error saat swap:", e);
     document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
   }
 }
 
-async function updateRatePreview() {
+function updateRatePreview() {
   document.getElementById("ratePreview").innerText = "Rate unavailable";
   document.getElementById("amountOut").value = "";
+}
+
+function populateTokenDropdowns() {
+  // handled by popup selector
 }
 
 window.addEventListener("load", () => {
   populateTokenDropdowns();
   document.getElementById("amount").addEventListener("input", updateRatePreview);
 });
-
-function populateTokenDropdowns() {
-  // handled by popup selector
-}
