@@ -197,3 +197,40 @@ window.addEventListener("load", () => {
   populateTokenDropdowns();
   document.getElementById("amount").addEventListener("input", updateRatePreview);
 });
+
+/* === NEW: Error & success result messages === */
+#result.error {
+  color: #e53935;
+}
+#result.success {
+  color: #10b981;
+}
+
+/* === NEW: Responsive hidden pages === */
+.page {
+  display: none;
+}
+.page.active {
+  display: block;
+}
+
+/* === NEW: Footer Space === */
+.footer-space {
+  height: 58px;
+}
+
+/* === NEW: Network label di popup === */
+.network-title {
+  text-align: center;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+/* === NEW: Loading animation for balance (fallback) */
+.loading::after {
+  content: " ⏳";
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
