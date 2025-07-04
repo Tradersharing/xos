@@ -352,3 +352,48 @@ input:focus {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+  background: #000;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.page {
+  min-height: calc(100vh - 60px); /* biar nggak nabrak footer */
+  padding-bottom: 60px;
+  overflow-y: auto;
+}
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #111;
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0;
+  border-top: 1px solid #333;
+  z-index: 100;
+}
+
+.tab-bar button {
+  background: none;
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  flex: 1;
+}
+
+.tab-bar button.active {
+  font-weight: bold;
+  color: #0ff;
+}
+
+.footer-space {
+  height: 60px;
+}
