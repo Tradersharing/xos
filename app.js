@@ -1,7 +1,6 @@
 // ==== TradersharingSwap DApp (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
 
-// Router cadangan Freeswap: 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40
-// LP sample Freeswap: 0x8e3fE70b4d092dFaFF81585845a991163bE979e7 (XOS/USDC LP)
+// Router cadangan (Freeswap): 0x8e3fE70b4d092dFaFF81585845a991163bE979e7
 
 let provider, signer, currentTargetSelect = "";
 
@@ -19,10 +18,24 @@ const routerAbi = [
   "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external"
 ];
 
+// === USDC Contract (XOS Testnet) ===
+const USDC_ADDRESS = "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02";
+const USDC_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) returns (bool)"
+];
+
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
-  { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" },
+  { address: USDC_ADDRESS, symbol: "USDC" },
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "TSR" }
 ];
 
@@ -173,7 +186,12 @@ async function doSwap() {
       amountOutMin,
       tokenIn,
       tokenOut,
-      recipient
+      recipient,
+      {
+        gasLimit: 500000,                 // bisa disesuaikan
+        maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+        maxFeePerGas: ethers.parseUnits("5", "gwei")
+      }
     );
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
