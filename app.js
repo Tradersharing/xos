@@ -13,15 +13,14 @@ const XOS_PARAMS = {
 
 const routerAddress = "0x89ff1b118ec9315295801c594983ee190b9a4598";
 const routerAbi = [
-  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external",
-  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external"
+  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external"
 ];
 
 const tokenList = [
   { address: ethers.ZeroAddress, symbol: "XOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" },
-  { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap" }
+  { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "TSR" }
 ];
 
 function getSymbol(address) {
@@ -155,7 +154,7 @@ async function doSwap() {
     const minOut = amountIn * BigInt(100 - slippage) / 100n;
     const amountOutMin = minOut < 1n ? 0n : minOut;
     const path = [tokenIn, tokenOut];
-    const deadline = Math.floor(Date.now() / 1000) + 600;
+
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
     if (tokenIn !== ethers.ZeroAddress) {
@@ -167,15 +166,13 @@ async function doSwap() {
       }
     }
 
-    try {
-      await router.swapExactTokensForTokens.estimateGas(amountIn, amountOutMin, path, recipient, deadline);
-    } catch (err) {
-      console.error("⛔ estimateGas error:", err);
-      document.getElementById("result").innerText = "❌ Swap gagal saat estimasi: " + (err.reason || err.message || "Unknown reason");
-      return;
-    }
-
-    const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, recipient, deadline);
+    const tx = await router.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      tokenIn,
+      tokenOut,
+      recipient
+    );
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (e) {
@@ -184,13 +181,9 @@ async function doSwap() {
   }
 }
 
-function updateRatePreview() {
+async function updateRatePreview() {
   document.getElementById("ratePreview").innerText = "Rate unavailable";
   document.getElementById("amountOut").value = "";
-}
-
-function populateTokenDropdowns() {
-  // handled by popup selector
 }
 
 window.addEventListener("load", () => {
@@ -198,39 +191,6 @@ window.addEventListener("load", () => {
   document.getElementById("amount").addEventListener("input", updateRatePreview);
 });
 
-/* === NEW: Error & success result messages === */
-#result.error {
-  color: #e53935;
+function populateTokenDropdowns() {
+  // handled by popup selector
 }
-#result.success {
-  color: #10b981;
-}
-
-/* === NEW: Responsive hidden pages === */
-.page {
-  display: none;
-}
-.page.active {
-  display: block;
-}
-
-/* === NEW: Footer Space === */
-.footer-space {
-  height: 58px;
-}
-
-/* === NEW: Network label di popup === */
-.network-title {
-  text-align: center;
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 10px;
-}
-
-/* === NEW: Loading animation for balance (fallback) */
-.loading::after {
-  content: " ⏳";
-  display: inline-block;
-  animation: spin 1s linear infinite;
-}
-
