@@ -1,13 +1,15 @@
 /* === GLOBAL === */
-body {
-  font-family: 'Poppins', sans-serif;
-  background: #f8fbff;
+html, body {
   margin: 0;
   padding: 0;
-  color: #1e1e2f;
-  transition: background-color 0.4s ease;
+  height: 100%;
+  overflow-x: hidden;
+  background: #000;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
 }
 
+/* === FORM ELEMENTS === */
 button {
   padding: 12px 20px;
   border: none;
@@ -51,7 +53,6 @@ input:focus {
 .custom-header .title {
   font-size: 26px;
   font-weight: bold;
-  font-family: 'Segoe UI', sans-serif;
   letter-spacing: 0.5px;
 }
 
@@ -63,9 +64,16 @@ input:focus {
   margin-top: 5px;
 }
 
-/* === SWAP CONTAINER === */
+/* === PAGE === */
+.page {
+  min-height: calc(100vh - 60px);
+  padding-bottom: 60px;
+  overflow-y: auto;
+}
+
+/* === CONTAINER === */
 .swap-container {
-  background: #fff;
+  background: #111;
   margin: 24px auto;
   padding: 24px;
   border-radius: 20px;
@@ -74,11 +82,12 @@ input:focus {
   animation: fadeInUp 0.6s ease-in-out;
 }
 
+/* === WALLET STATUS === */
 .wallet-status {
   text-align: center;
   margin-bottom: 12px;
   font-size: 14px;
-  color: #666;
+  color: #aaa;
 }
 
 #btnConnect {
@@ -98,7 +107,7 @@ input:focus {
 }
 
 .swap-box {
-  background: #f5f9fc;
+  background: #1a1a1a;
   border-radius: 16px;
   padding: 16px;
   margin-top: 20px;
@@ -110,11 +119,11 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #eef4fb;
+  background: #222;
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 16px;
-  border: 1px solid #e0eaf4;
+  border: 1px solid #333;
 }
 
 .token-select-btn {
@@ -124,21 +133,22 @@ input:focus {
   font-weight: 600;
   padding: 8px 14px;
   border-radius: 14px;
-  background: #fff;
-  border: 1px solid #ccc;
+  background: #333;
+  border: 1px solid #666;
   cursor: pointer;
   transition: 0.2s ease-in-out;
+  color: #fff;
 }
 
 .token-select-btn:hover {
-  background: #f0f4ff;
+  background: #444;
 }
 
 .token-select-btn::after {
   content: "⏷";
   font-size: 16px;
   margin-left: 8px;
-  color: #666;
+  color: #ccc;
 }
 
 .token-row input {
@@ -147,13 +157,13 @@ input:focus {
   background: transparent;
   font-size: 20px;
   text-align: right;
-  color: #1e1e2f;
+  color: #fff;
   font-weight: 600;
 }
 
 .balance-text {
   font-size: 13px;
-  color: #666;
+  color: #aaa;
   text-align: right;
   margin-top: 4px;
 }
@@ -162,7 +172,7 @@ input:focus {
 #result {
   margin-top: 14px;
   font-size: 15px;
-  color: #10b981;
+  color: #0f0;
   text-align: center;
   word-break: break-word;
 }
@@ -171,7 +181,7 @@ input:focus {
   text-align: center;
   margin-top: 8px;
   font-size: 13px;
-  color: #555;
+  color: #aaa;
   font-style: italic;
 }
 
@@ -181,34 +191,37 @@ input:focus {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #fff;
-  border-top: 1px solid #ddd;
+  background: #111;
+  border-top: 1px solid #333;
   display: flex;
   justify-content: space-around;
   padding: 6px 0;
-  z-index: 10;
+  z-index: 100;
 }
 
 .tab-bar button {
   background: none;
-  border: none;
-  font-size: 13px;
   color: #888;
-  text-align: center;
+  border: none;
+  font-size: 12px;
   flex: 1;
-  transition: color 0.3s ease;
+  text-align: center;
 }
 
 .tab-bar button.active {
-  color: #00bfff;
-  font-weight: 600;
+  font-weight: bold;
+  color: #0ff;
+}
+
+.footer-space {
+  height: 60px;
 }
 
 /* === POPUP TOKEN === */
 .popup {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -221,12 +234,12 @@ input:focus {
 }
 
 .popup-inner {
-  background: #fff;
+  background: #111;
   padding: 26px;
   border-radius: 20px;
   width: 90%;
   max-width: 420px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   animation: popUp 0.3s ease-out;
 }
 
@@ -234,7 +247,7 @@ input:focus {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 14px;
-  color: #1e1e2f;
+  color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -242,10 +255,12 @@ input:focus {
 
 #searchToken {
   border-radius: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #555;
   padding: 12px;
   font-size: 15px;
   margin-bottom: 16px;
+  background: #222;
+  color: #fff;
 }
 
 .token-list {
@@ -255,7 +270,7 @@ input:focus {
 }
 
 .token-item {
-  background: #f4f8fc;
+  background: #1e1e1e;
   padding: 12px 16px;
   border-radius: 14px;
   display: flex;
@@ -263,10 +278,11 @@ input:focus {
   align-items: center;
   cursor: pointer;
   transition: 0.2s ease;
+  border: 1px solid #333;
 }
 
 .token-item:hover {
-  background: #e8f0ff;
+  background: #2a2a2a;
   transform: scale(1.01);
 }
 
@@ -284,12 +300,12 @@ input:focus {
 
 .token-symbol {
   font-weight: 700;
-  color: #222;
+  color: #fff;
 }
 
 .token-balance {
   font-size: 13px;
-  color: #777;
+  color: #aaa;
 }
 
 .token-balance.loading::after {
@@ -299,101 +315,23 @@ input:focus {
   margin-left: 6px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
+/* === ANIMATIONS === */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* === ANIMATIONS === */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popUp {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
 @keyframes fadeInUp {
   from { transform: translateY(40px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* === SLIPPAGE === */
-.slippage-container {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #555;
-}
-
-.slippage-container input {
-  width: 50px;
-  padding: 6px 8px;
-  font-size: 13px;
-  text-align: center;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-
-/* === LOADING ANIM BALANCE === */
-.loading-balance::after {
-  content: "";
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid #00bfff;
-  border-top: 2px solid transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
 @keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow-x: hidden;
-  background: #000;
-  color: #fff;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.page {
-  min-height: calc(100vh - 60px); /* biar nggak nabrak footer */
-  padding-bottom: 60px;
-  overflow-y: auto;
-}
-
-.tab-bar {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: #111;
-  display: flex;
-  justify-content: space-around;
-  padding: 6px 0;
-  border-top: 1px solid #333;
-  z-index: 100;
-}
-
-.tab-bar button {
-  background: none;
-  color: #fff;
-  border: none;
-  font-size: 12px;
-  flex: 1;
-}
-
-.tab-bar button.active {
-  font-weight: bold;
-  color: #0ff;
-}
-
-.footer-space {
-  height: 60px;
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
 }
