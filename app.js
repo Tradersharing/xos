@@ -1,5 +1,8 @@
 // ==== TradersharingSwap DApp (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
 
+// Router cadangan Freeswap: 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40
+// LP sample Freeswap: 0x8e3fE70b4d092dFaFF81585845a991163bE979e7 (XOS/USDC LP)
+
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -153,7 +156,6 @@ async function doSwap() {
     const amountIn = ethers.parseUnits(amountRaw, decimals);
     const minOut = amountIn * BigInt(100 - slippage) / 100n;
     const amountOutMin = minOut < 1n ? 0n : minOut;
-    const path = [tokenIn, tokenOut];
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
