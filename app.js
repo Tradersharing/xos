@@ -11,7 +11,7 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-const routerAddress = "0x999999992dbb0b0e125452d22a9fa5ada7a92c05"; // FreeSwap Router V2
+const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151"; // FreeSwap Router V2
 
 const routerAbi = [
   "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) external returns (uint[])",
