@@ -1,4 +1,4 @@
-// ==== TradersharingSwap DApp Final (Router: 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40) ====
+// ==== TradersharingSwap DApp Final ====
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -11,10 +11,15 @@ const XOS_PARAMS = {
 };
 
 const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
-const routerAbi = [
-  "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) external returns (uint[])"
-];
+const factoryAddress = "0x859d9f77544e0123D351Cb1203BbC68788c9Fb6E";
 
+const routerAbi = [
+  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) external returns (uint[])",
+  "function getAmountsOut(uint amountIn, address[] path) view returns (uint[])"
+];
+const factoryAbi = [
+  "function getPair(address tokenA, address tokenB) external view returns (address pair)"
+];
 
 const tokenList = [
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS" },
@@ -60,7 +65,7 @@ async function connectWallet() {
     populateTokenDropdowns();
   } catch (err) {
     console.error(err);
-    alert("Failed to connect wallet");
+    alert("\u274C Failed to connect wallet");
   }
 }
 
@@ -99,7 +104,7 @@ async function renderTokenList() {
 async function selectToken(address, symbol) {
   const other = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
   const otherVal = document.getElementById(other).value;
-  if (address === otherVal) return alert("⚠️ Token tidak boleh sama!");
+  if (address === otherVal) return alert("\u26A0\uFE0F Token tidak boleh sama!");
 
   document.getElementById(currentTargetSelect + "Btn").innerHTML = `
     <img src="assets/icons/${symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
@@ -138,79 +143,61 @@ async function doSwap() {
   let amountRaw = document.getElementById("amount").value;
   amountRaw = amountRaw.replace(",", ".");
 
-  // Validasi awal
-  if (!ethers.isAddress(tokenIn)) return alert("⚠️ Alamat token input (tokenIn) tidak valid.");
-  if (!ethers.isAddress(tokenOut)) return alert("⚠️ Alamat token output (tokenOut) tidak valid.");
-  if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("⚠️ Jumlah token tidak valid.");
-  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("⚠️ Token tidak boleh sama!");
+  if (!ethers.isAddress(tokenIn) || !ethers.isAddress(tokenOut)) return alert("\u26A0\uFE0F Alamat token tidak valid.");
+  if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("\u26A0\uFE0F Jumlah token tidak valid.");
+  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("\u26A0\uFE0F Token tidak boleh sama.");
 
   try {
     const recipient = await signer.getAddress();
     const slippage = getSlippage();
-
-    // Ambil desimal tokenIn
     const decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
     const amountIn = ethers.parseUnits(amountRaw, decimals);
-    const minOut = amountIn * BigInt(100 - slippage) / 100n;
-    const amountOutMin = minOut < 1n ? 0n : minOut;
+    const amountOutMin = amountIn * BigInt(100 - slippage) / 100n;
 
-    // Cek ketersediaan liquidity
-    const routerRead = new ethers.Contract(routerAddress, [
-      "function getAmountsOut(uint amountIn, address[] path) view returns (uint[])"
-    ], provider);
+    const factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
+    const router = new ethers.Contract(routerAddress, routerAbi, signer);
+    const path = [tokenIn, tokenOut];
 
-    try {
-      await routerRead.getAmountsOut(amountIn, [tokenIn, tokenOut]);
-    } catch (e) {
-      console.warn("No LP found:", e);
-      return alert("🚫 Tidak ada liquidity untuk pair ini! Periksa apakah token pair-nya benar.");
+    const pair1 = await factory.getPair(tokenIn, tokenOut);
+    const pair2 = await factory.getPair(tokenOut, tokenIn);
+    if (pair1 === ethers.ZeroAddress && pair2 === ethers.ZeroAddress) {
+      return alert("\u274C Tidak ada liquidity (LP) untuk pair ini, baik normal maupun terbalik.");
     }
 
-    // Cek & approve jika perlu
+    try {
+      await router.getAmountsOut(amountIn, path);
+    } catch (e) {
+      console.warn("getAmountsOut error:", e);
+      return alert("\u274C LP ditemukan tapi tidak bisa hitung amountOut. Mungkin reserve 0 atau route tidak valid.");
+    }
+
     const token = new ethers.Contract(tokenIn, [
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ], signer);
-
-    try {
-      const allowance = await token.allowance(recipient, routerAddress);
-      if (allowance < amountIn) {
-        const approveTx = await token.approve(routerAddress, amountIn);
-        await approveTx.wait();
-      }
-    } catch (e) {
-      console.error("❌ Gagal approve:", e);
-      return alert("❌ Gagal approve token. Periksa apakah contract token benar.");
+    const allowance = await token.allowance(recipient, routerAddress);
+    if (allowance < amountIn) {
+      const approveTx = await token.approve(routerAddress, amountIn);
+      await approveTx.wait();
     }
 
-    // Swap token
-    const router = new ethers.Contract(routerAddress, [
-      "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to) external"
-    ], signer);
-
-    try {
-      const tx = await router.swapExactTokensForTokens(
-        amountIn,
-        amountOutMin,
-        [tokenIn, tokenOut],
-        recipient
-      );
-      const receipt = await tx.wait();
-      document.getElementById("result").innerHTML =
-        `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
-    } catch (e) {
-      console.error("❌ Gagal swap:", e);
-      return alert("❌ Gagal swap. Cek jaringan, liquidity, dan kontrak router!");
-    }
-
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
+    const tx = await router.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      path,
+      recipient,
+      deadline
+    );
+    const receipt = await tx.wait();
+    document.getElementById("result").innerHTML = `\u2705 Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (e) {
-    console.error("❌ Error umum:", e);
-    alert("❌ Terjadi error. Mungkin jaringan putus, kontrak salah, atau wallet tidak aktif.");
+    console.error("\u274C Error saat swap:", e);
+    alert("\u274C Gagal swap. Periksa jaringan, token, allowance, atau LP.");
   }
 }
 
-
-async function updateRatePreview() {
+function updateRatePreview() {
   document.getElementById("ratePreview").innerText = "Rate unavailable";
   document.getElementById("amountOut").value = "";
 }
