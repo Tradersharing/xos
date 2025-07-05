@@ -12,8 +12,9 @@ const XOS_PARAMS = {
 
 const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
-  "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) external returns (uint[])"
+  "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) external returns (uint[])"
 ];
+
 
 const tokenList = [
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS" },
@@ -149,7 +150,6 @@ async function doSwap() {
     const minOut = amountIn * BigInt(100 - slippage) / 100n;
     const amountOutMin = minOut < 1n ? 0n : minOut;
 
-    const deadline = Math.floor(Date.now() / 1000) + 1800;
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
     const token = new ethers.Contract(tokenIn, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
@@ -159,13 +159,15 @@ async function doSwap() {
       await approveTx.wait();
     }
 
+    // ✅ FIXED — pake 5 parameter (dengan deadline)
     const tx = await router.swapExactTokensForTokens(
       amountIn,
       amountOutMin,
       [tokenIn, tokenOut],
       recipient,
-      deadline
+      Math.floor(Date.now() / 1000) + 60 * 10  // deadline = 10 menit
     );
+
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
   } catch (e) {
