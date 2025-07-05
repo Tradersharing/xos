@@ -132,6 +132,32 @@ async function getTokenBalance(addr) {
   }
 }
 
+// 🔁 FUNGSI CARI JALUR TERBAIK DENGAN OTOMATIS
+async function findBestPath(tokenIn, tokenOut, amountIn) {
+  const router = new ethers.Contract(routerAddress, routerAbi, provider);
+  const paths = [];
+
+  // 1-hop
+  paths.push([tokenIn, tokenOut]);
+
+  // 2-hop (lewat semua tokenList selain in & out)
+  for (const mid of tokenList) {
+    if (mid.address !== tokenIn && mid.address !== tokenOut) {
+      paths.push([tokenIn, mid.address, tokenOut]);
+    }
+  }
+
+  for (const path of paths) {
+    try {
+      await router.getAmountsOut(amountIn, path);
+      return path;
+    } catch {}
+  }
+
+  return null;
+}
+
+// 🔁 UPGRADE DO SWAP
 async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
@@ -151,19 +177,9 @@ async function doSwap() {
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    let path;
 
-    try {
-      await router.getAmountsOut(amountIn, [tokenIn, tokenOut]);
-      path = [tokenIn, tokenOut];
-    } catch {
-      try {
-        await router.getAmountsOut(amountIn, [tokenOut, tokenIn]);
-        path = [tokenOut, tokenIn];
-      } catch {
-        return alert("🚫 Tidak ada LP untuk pair ini.");
-      }
-    }
+    const path = await findBestPath(tokenIn, tokenOut, amountIn);
+    if (!path) return alert("🚫 Tidak ada LP tersedia untuk pair ini.");
 
     const token = new ethers.Contract(tokenIn, [
       "function allowance(address owner, address spender) view returns (uint256)",
