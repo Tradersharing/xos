@@ -1,4 +1,4 @@
-// ==== TradersharingSwap DApp (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
+// ==== TradersharingSwap DApp Final (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
 
 let provider, signer, currentTargetSelect = "";
 
@@ -17,7 +17,7 @@ const routerAbi = [
 ];
 
 const tokenList = [
-  { address: ethers.ZeroAddress, symbol: "XOS" },
+  { address: "0x8e3fE70b4d092dFaFF81585845a991163bE979e7", symbol: "wXOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0x6D2Af57AaA70A10A145C5E5569F6E2F087D94E02", symbol: "USDC" },
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "TSR" }
@@ -123,10 +123,6 @@ async function getTokenBalance(addr) {
   if (!signer || !provider) return "0.00";
   try {
     const user = await signer.getAddress();
-    if (addr.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
-      const bal = await provider.getBalance(user);
-      return parseFloat(ethers.formatEther(bal)).toFixed(4);
-    }
     const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
     const token = new ethers.Contract(addr, abi, provider);
     const [raw, dec] = await Promise.all([token.balanceOf(user), token.decimals()]);
@@ -143,7 +139,7 @@ async function doSwap() {
   amountRaw = amountRaw.replace(",", ".");
 
   if (!ethers.isAddress(tokenIn) || !ethers.isAddress(tokenOut)) return alert("⚠️ Alamat token tidak valid.");
-  if (!amountRaw || isNaN(Number(amountRaw)) || parseFloat(amountRaw) <= 0) return alert("⚠️ Jumlah token tidak valid.");
+  if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("⚠️ Jumlah token tidak valid.");
   if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("⚠️ Token tidak boleh sama.");
 
   try {
@@ -156,13 +152,11 @@ async function doSwap() {
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
-    if (tokenIn !== ethers.ZeroAddress) {
-      const token = new ethers.Contract(tokenIn, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
-      const allowance = await token.allowance(recipient, routerAddress);
-      if (allowance < amountIn) {
-        const approveTx = await token.approve(routerAddress, amountIn);
-        await approveTx.wait();
-      }
+    const token = new ethers.Contract(tokenIn, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
+    const allowance = await token.allowance(recipient, routerAddress);
+    if (allowance < amountIn) {
+      const approveTx = await token.approve(routerAddress, amountIn);
+      await approveTx.wait();
     }
 
     const tx = await router.swapExactTokensForTokens(
