@@ -1,5 +1,4 @@
 // ==== TradersharingSwap DApp Final (Router: 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40) ====
-
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -13,7 +12,7 @@ const XOS_PARAMS = {
 
 const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
-  "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to) external"
+  "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) external returns (uint[])"
 ];
 
 const tokenList = [
@@ -150,6 +149,7 @@ async function doSwap() {
     const minOut = amountIn * BigInt(100 - slippage) / 100n;
     const amountOutMin = minOut < 1n ? 0n : minOut;
 
+    const deadline = Math.floor(Date.now() / 1000) + 1800;
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
     const token = new ethers.Contract(tokenIn, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
@@ -162,8 +162,9 @@ async function doSwap() {
     const tx = await router.swapExactTokensForTokens(
       amountIn,
       amountOutMin,
-      [tokenIn, tokenOut], // FIX: gunakan array
-      recipient
+      [tokenIn, tokenOut],
+      recipient,
+      deadline
     );
     const receipt = await tx.wait();
     document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
