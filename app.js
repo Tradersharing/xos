@@ -1,5 +1,5 @@
-// ==== TradersharingSwap DApp Final (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
-// ==== Freeswaprouter 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40
+// ==== TradersharingSwap DApp Final (Router: 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40) ====
+
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -13,7 +13,7 @@ const XOS_PARAMS = {
 
 const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
-  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external"
+  "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to) external"
 ];
 
 const tokenList = [
@@ -162,8 +162,7 @@ async function doSwap() {
     const tx = await router.swapExactTokensForTokens(
       amountIn,
       amountOutMin,
-      tokenIn,
-      tokenOut,
+      [tokenIn, tokenOut], // FIX: gunakan array
       recipient
     );
     const receipt = await tx.wait();
