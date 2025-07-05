@@ -17,6 +17,7 @@ const routerAbi = [
 ];
 
 const tokenList = [
+  { address: "native", symbol: "XOS" },
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC" },
@@ -123,6 +124,10 @@ async function getTokenBalance(addr) {
   if (!signer || !provider) return "0.00";
   try {
     const user = await signer.getAddress();
+    if (addr === "native") {
+      const bal = await provider.getBalance(user);
+      return parseFloat(ethers.formatEther(bal)).toFixed(4);
+    }
     const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
     const token = new ethers.Contract(addr, abi, provider);
     const [raw, dec] = await Promise.all([token.balanceOf(user), token.decimals()]);
@@ -132,32 +137,6 @@ async function getTokenBalance(addr) {
   }
 }
 
-// 🔁 FUNGSI CARI JALUR TERBAIK DENGAN OTOMATIS
-async function findBestPath(tokenIn, tokenOut, amountIn) {
-  const router = new ethers.Contract(routerAddress, routerAbi, provider);
-  const paths = [];
-
-  // 1-hop
-  paths.push([tokenIn, tokenOut]);
-
-  // 2-hop (lewat semua tokenList selain in & out)
-  for (const mid of tokenList) {
-    if (mid.address !== tokenIn && mid.address !== tokenOut) {
-      paths.push([tokenIn, mid.address, tokenOut]);
-    }
-  }
-
-  for (const path of paths) {
-    try {
-      await router.getAmountsOut(amountIn, path);
-      return path;
-    } catch {}
-  }
-
-  return null;
-}
-
-// 🔁 UPGRADE DO SWAP
 async function doSwap() {
   const tokenIn = document.getElementById("tokenIn").value;
   const tokenOut = document.getElementById("tokenOut").value;
@@ -178,7 +157,20 @@ async function doSwap() {
 
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
 
-    const path = await findBestPath(tokenIn, tokenOut, amountIn);
+    let path = null;
+    const tryPaths = [
+      [tokenIn, tokenOut],
+      ...tokenList.filter(t => t.address !== tokenIn && t.address !== tokenOut).map(t => [tokenIn, t.address, tokenOut])
+    ];
+
+    for (const p of tryPaths) {
+      try {
+        await router.getAmountsOut(amountIn, p);
+        path = p;
+        break;
+      } catch { continue; }
+    }
+
     if (!path) return alert("🚫 Tidak ada LP tersedia untuk pair ini.");
 
     const token = new ethers.Contract(tokenIn, [
