@@ -1,4 +1,4 @@
-// ==== TradersharingSwap DApp Final ====
+// ==== TradersharingSwap DApp FINAL DUA ARAH ====
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -65,12 +65,91 @@ async function connectWallet() {
     populateTokenDropdowns();
   } catch (err) {
     console.error(err);
-    alert("\u274C Failed to connect wallet");
+    alert("❌ Failed to connect wallet");
   }
 }
 
 function shortenAddress(a) {
   return a.slice(0, 6) + "..." + a.slice(-4);
+}
+
+async function getTokenBalance(addr) {
+  if (!signer || !provider) return "0.00";
+  try {
+    const user = await signer.getAddress();
+    const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
+    const token = new ethers.Contract(addr, abi, provider);
+    const [raw, dec] = await Promise.all([token.balanceOf(user), token.decimals()]);
+    return parseFloat(ethers.formatUnits(raw, dec)).toFixed(4);
+  } catch {
+    return "0.00";
+  }
+}
+
+async function doSwap() {
+  const tokenIn = document.getElementById("tokenIn").value;
+  const tokenOut = document.getElementById("tokenOut").value;
+  let amountRaw = document.getElementById("amount").value;
+  amountRaw = amountRaw.replace(",", ".");
+
+  if (!ethers.isAddress(tokenIn) || !ethers.isAddress(tokenOut)) return alert("⚠️ Alamat token tidak valid.");
+  if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("⚠️ Jumlah token tidak valid.");
+  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("⚠️ Token tidak boleh sama.");
+
+  try {
+    const recipient = await signer.getAddress();
+    const slippage = getSlippage();
+    const decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
+    const amountIn = ethers.parseUnits(amountRaw, decimals);
+    const amountOutMin = amountIn * BigInt(100 - slippage) / 100n;
+
+    // Cari path dua arah
+    let path = [tokenIn, tokenOut];
+    const factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
+    let pair = await factory.getPair(tokenIn, tokenOut);
+
+    if (pair === ethers.ZeroAddress) {
+      pair = await factory.getPair(tokenOut, tokenIn);
+      if (pair === ethers.ZeroAddress) return alert("🚫 Tidak ada LP untuk pair ini.");
+      path = [tokenOut, tokenIn];
+    }
+
+    const router = new ethers.Contract(routerAddress, routerAbi, signer);
+    try {
+      await router.getAmountsOut(amountIn, path);
+    } catch {
+      return alert("🚫 Tidak bisa hitung amountOut. Cek LP atau path token.");
+    }
+
+    const token = new ethers.Contract(tokenIn, [
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ], signer);
+    const allowance = await token.allowance(recipient, routerAddress);
+    if (allowance < amountIn) {
+      const approveTx = await token.approve(routerAddress, amountIn);
+      await approveTx.wait();
+    }
+
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+    const tx = await router.swapExactTokensForTokens(
+      amountIn,
+      amountOutMin,
+      path,
+      recipient,
+      deadline
+    );
+    const receipt = await tx.wait();
+    document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
+  } catch (e) {
+    console.error("❌ Error saat swap:", e);
+    alert("❌ Gagal swap. Cek jaringan, token, LP, atau approval.");
+  }
+}
+
+function updateRatePreview() {
+  document.getElementById("ratePreview").innerText = "Rate unavailable";
+  document.getElementById("amountOut").value = "";
 }
 
 function openTokenSelector(target) {
@@ -104,7 +183,7 @@ async function renderTokenList() {
 async function selectToken(address, symbol) {
   const other = currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn";
   const otherVal = document.getElementById(other).value;
-  if (address === otherVal) return alert("\u26A0\uFE0F Token tidak boleh sama!");
+  if (address === otherVal) return alert("⚠️ Token tidak boleh sama!");
 
   document.getElementById(currentTargetSelect + "Btn").innerHTML = `
     <img src="assets/icons/${symbol.toLowerCase()}.png" onerror="this.src='assets/icons/blank.png'">
@@ -122,84 +201,6 @@ async function selectToken(address, symbol) {
   const tOut = document.getElementById("tokenOut").value;
   document.getElementById("btnSwap").disabled = (tIn === tOut || !tIn || !tOut);
   updateRatePreview();
-}
-
-async function getTokenBalance(addr) {
-  if (!signer || !provider) return "0.00";
-  try {
-    const user = await signer.getAddress();
-    const abi = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
-    const token = new ethers.Contract(addr, abi, provider);
-    const [raw, dec] = await Promise.all([token.balanceOf(user), token.decimals()]);
-    return parseFloat(ethers.formatUnits(raw, dec)).toFixed(4);
-  } catch {
-    return "0.00";
-  }
-}
-
-async function doSwap() {
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  let amountRaw = document.getElementById("amount").value;
-  amountRaw = amountRaw.replace(",", ".");
-
-  if (!ethers.isAddress(tokenIn) || !ethers.isAddress(tokenOut)) return alert("\u26A0\uFE0F Alamat token tidak valid.");
-  if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("\u26A0\uFE0F Jumlah token tidak valid.");
-  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("\u26A0\uFE0F Token tidak boleh sama.");
-
-  try {
-    const recipient = await signer.getAddress();
-    const slippage = getSlippage();
-    const decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
-    const amountIn = ethers.parseUnits(amountRaw, decimals);
-    const amountOutMin = amountIn * BigInt(100 - slippage) / 100n;
-
-    const factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const path = [tokenIn, tokenOut];
-
-    const pair1 = await factory.getPair(tokenIn, tokenOut);
-    const pair2 = await factory.getPair(tokenOut, tokenIn);
-    if (pair1 === ethers.ZeroAddress && pair2 === ethers.ZeroAddress) {
-      return alert("\u274C Tidak ada liquidity (LP) untuk pair ini, baik normal maupun terbalik.");
-    }
-
-    try {
-      await router.getAmountsOut(amountIn, path);
-    } catch (e) {
-      console.warn("getAmountsOut error:", e);
-      return alert("\u274C LP ditemukan tapi tidak bisa hitung amountOut. Mungkin reserve 0 atau route tidak valid.");
-    }
-
-    const token = new ethers.Contract(tokenIn, [
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)"
-    ], signer);
-    const allowance = await token.allowance(recipient, routerAddress);
-    if (allowance < amountIn) {
-      const approveTx = await token.approve(routerAddress, amountIn);
-      await approveTx.wait();
-    }
-
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
-    const tx = await router.swapExactTokensForTokens(
-      amountIn,
-      amountOutMin,
-      path,
-      recipient,
-      deadline
-    );
-    const receipt = await tx.wait();
-    document.getElementById("result").innerHTML = `\u2705 Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
-  } catch (e) {
-    console.error("\u274C Error saat swap:", e);
-    alert("\u274C Gagal swap. Periksa jaringan, token, allowance, atau LP.");
-  }
-}
-
-function updateRatePreview() {
-  document.getElementById("ratePreview").innerText = "Rate unavailable";
-  document.getElementById("amountOut").value = "";
 }
 
 window.addEventListener("load", () => {
