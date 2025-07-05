@@ -138,43 +138,77 @@ async function doSwap() {
   let amountRaw = document.getElementById("amount").value;
   amountRaw = amountRaw.replace(",", ".");
 
-  if (!ethers.isAddress(tokenIn) || !ethers.isAddress(tokenOut)) return alert("⚠️ Alamat token tidak valid.");
+  // Validasi awal
+  if (!ethers.isAddress(tokenIn)) return alert("⚠️ Alamat token input (tokenIn) tidak valid.");
+  if (!ethers.isAddress(tokenOut)) return alert("⚠️ Alamat token output (tokenOut) tidak valid.");
   if (!amountRaw || isNaN(amountRaw) || parseFloat(amountRaw) <= 0) return alert("⚠️ Jumlah token tidak valid.");
-  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("⚠️ Token tidak boleh sama.");
+  if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return alert("⚠️ Token tidak boleh sama!");
 
   try {
     const recipient = await signer.getAddress();
     const slippage = getSlippage();
+
+    // Ambil desimal tokenIn
     const decimals = await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
     const amountIn = ethers.parseUnits(amountRaw, decimals);
     const minOut = amountIn * BigInt(100 - slippage) / 100n;
     const amountOutMin = minOut < 1n ? 0n : minOut;
 
-    const router = new ethers.Contract(routerAddress, routerAbi, signer);
+    // Cek ketersediaan liquidity
+    const routerRead = new ethers.Contract(routerAddress, [
+      "function getAmountsOut(uint amountIn, address[] path) view returns (uint[])"
+    ], provider);
 
-    const token = new ethers.Contract(tokenIn, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], signer);
-    const allowance = await token.allowance(recipient, routerAddress);
-    if (allowance < amountIn) {
-      const approveTx = await token.approve(routerAddress, amountIn);
-      await approveTx.wait();
+    try {
+      await routerRead.getAmountsOut(amountIn, [tokenIn, tokenOut]);
+    } catch (e) {
+      console.warn("No LP found:", e);
+      return alert("🚫 Tidak ada liquidity untuk pair ini! Periksa apakah token pair-nya benar.");
     }
 
-    // ✅ FIXED — pake 5 parameter (dengan deadline)
-    const tx = await router.swapExactTokensForTokens(
-      amountIn,
-      amountOutMin,
-      [tokenIn, tokenOut],
-      recipient,
-      Math.floor(Date.now() / 1000) + 60 * 10  // deadline = 10 menit
-    );
+    // Cek & approve jika perlu
+    const token = new ethers.Contract(tokenIn, [
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ], signer);
 
-    const receipt = await tx.wait();
-    document.getElementById("result").innerHTML = `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
+    try {
+      const allowance = await token.allowance(recipient, routerAddress);
+      if (allowance < amountIn) {
+        const approveTx = await token.approve(routerAddress, amountIn);
+        await approveTx.wait();
+      }
+    } catch (e) {
+      console.error("❌ Gagal approve:", e);
+      return alert("❌ Gagal approve token. Periksa apakah contract token benar.");
+    }
+
+    // Swap token
+    const router = new ethers.Contract(routerAddress, [
+      "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to) external"
+    ], signer);
+
+    try {
+      const tx = await router.swapExactTokensForTokens(
+        amountIn,
+        amountOutMin,
+        [tokenIn, tokenOut],
+        recipient
+      );
+      const receipt = await tx.wait();
+      document.getElementById("result").innerHTML =
+        `✅ Swap Success! <a href="https://testnet.xoscan.io/tx/${receipt.hash}" target="_blank">View Tx</a>`;
+    } catch (e) {
+      console.error("❌ Gagal swap:", e);
+      return alert("❌ Gagal swap. Cek jaringan, liquidity, dan kontrak router!");
+    }
+
   } catch (e) {
-    console.error("❌ Error saat swap:", e);
-    document.getElementById("result").innerText = "❌ Swap Failed: " + (e.reason || e.message || "Unknown error");
+    console.error("❌ Error umum:", e);
+    alert("❌ Terjadi error. Mungkin jaringan putus, kontrak salah, atau wallet tidak aktif.");
   }
 }
+
 
 async function updateRatePreview() {
   document.getElementById("ratePreview").innerText = "Rate unavailable";
