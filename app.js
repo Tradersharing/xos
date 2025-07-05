@@ -1,5 +1,5 @@
 // ==== TradersharingSwap DApp Final (Router: 0x89ff1b118ec9315295801c594983ee190b9a4598) ====
-
+// ==== Freeswaprouter 0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40
 let provider, signer, currentTargetSelect = "";
 
 const CHAIN_ID_HEX = "0x4F3";
@@ -11,7 +11,7 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-const routerAddress = "0x89ff1b118ec9315295801c594983ee190b9a4598";
+const routerAddress = "0xdc7D6b58c89A554b3FDC4B5B10De9b4DbF39FB40";
 const routerAbi = [
   "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address tokenIn, address tokenOut, address to) external"
 ];
