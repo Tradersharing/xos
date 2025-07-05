@@ -17,7 +17,7 @@ const routerAbi = [
 ];
 
 const tokenList = [
-  { address: "0x8e3fE70b4d092dFaFF81585845a991163bE979e7", symbol: "wXOS" },
+  { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS" },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
   { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC" },
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "TSR" }
