@@ -86,14 +86,40 @@ async function renderTokenList() {
     getTokenBalance(t.address).then(b => document.getElementById(`balance-${t.symbol}`).innerText = b);
   }
 }
-async function selectToken(addr, sym) {
-  const otherInput = currentTargetSelect.includes("Liq") ? (currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn") : (currentTargetSelect === "tokenIn" ? "tokenOut" : "tokenIn");
-  if (addr === document.getElementById(otherInput).value) return alert("⚠️ Token tidak boleh sama!");
-  document.getElementById(currentTargetSelect + (currentTargetSelect.includes("Liq")?"BtnLiq":"Btn")).innerHTML = `<img src='assets/icons/${sym.toLowerCase()}.png'> <span>${sym}</span>`;
-  document.getElementById(currentTargetSelect).value = addr;
+
+
+function selectToken(address, symbol) {
+  const isSwap = document.getElementById("swap").classList.contains("active");
+  const target = currentTargetSelect;
+  const other = target === "tokenIn" ? "tokenOut" : "tokenIn";
+
+  const currentInputId = (isSwap ? "swap" : "liquidity") + target.charAt(0).toUpperCase() + target.slice(1);
+  const otherInputId = (isSwap ? "swap" : "liquidity") + other.charAt(0).toUpperCase() + other.slice(1);
+
+  if (address === document.getElementById(otherInputId)?.value) {
+    return alert("⚠️ Token tidak boleh sama!");
+  }
+
+  document.getElementById(target + "Btn").innerHTML = `
+    <img src='assets/icons/${symbol.toLowerCase()}.png' onerror="this.src='assets/icons/blank.png'">
+    <span>${symbol}</span>`;
+
+  getTokenBalance(address).then(bal => {
+    document.getElementById(target + "Balance").innerText = `Balance: ${bal}`;
+  });
+
+  document.getElementById(currentInputId).value = address;
+
   closeTokenSelector();
-  updateRatePreview();
+  if (isSwap) updateRatePreview();
 }
+
+
+
+
+
+
+
 
 // balance helper
 async function getTokenBalance(addr) {
@@ -136,46 +162,68 @@ async function updateRatePreview() {
 
 // swap
 async function doSwap() {
-  const inAddr = document.getElementById("tokenIn").value;
-  const outAddr = document.getElementById("tokenOut").value;
-  const raw = document.getElementById("amount").value.replace(",",".");
+  const tokenIn = document.getElementById("swapTokenIn").value;
+  const tokenOut = document.getElementById("swapTokenOut").value;
+  let amountRaw = document.getElementById("amount").value.replace(",", ".");
 
-  if (!inAddr||!outAddr||inAddr===outAddr||!raw||isNaN(parseFloat(raw))) {
+  if (!tokenIn || !tokenOut || tokenIn === tokenOut || !amountRaw || isNaN(parseFloat(amountRaw))) {
     return alert("⚠️ Data tidak valid.");
   }
+
   try {
     const router = new ethers.Contract(routerAddress, routerAbi, signer);
-    const to = await signer.getAddress();
-    const slip = getSlippage();
-    const dec = inAddr==="native"?18:await new ethers.Contract(inAddr,["function decimals() view returns (uint8)"],provider).decimals();
-    const ai = ethers.parseUnits(raw, dec);
-    const aom = ai * BigInt(100-slip) / 100n;
-    const dl = Math.floor(Date.now()/1000)+600;
-    const paths = [[inAddr,outAddr], ...tokenList.filter(t=>t.address!==inAddr&&t.address!==outAddr).map(t=>[inAddr,t.address,outAddr])];
-    let chosen;
-    for (const p of paths) {
-      try { await router.getAmountsOut(ai, p); chosen = p; break; } catch {}
+    const recipient = await signer.getAddress();
+    const slippage = getSlippage();
+    const decimals = tokenIn === "native" ? 18 : await new ethers.Contract(tokenIn, ["function decimals() view returns (uint8)"], provider).decimals();
+    const amountIn = ethers.parseUnits(amountRaw, decimals);
+    const amountOutMin = amountIn * BigInt(100 - slippage) / 100n;
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+
+    const tryPaths = [
+      [tokenIn, tokenOut],
+      ...tokenList.filter(t => t.address !== tokenIn && t.address !== tokenOut).map(t => [tokenIn, t.address, tokenOut])
+    ];
+
+    let path = null;
+    for (const p of tryPaths) {
+      try {
+        await router.getAmountsOut(amountIn, p);
+        path = p;
+        break;
+      } catch {}
     }
-    if (!chosen) return alert("🚫 Tidak ada LP tersedia.");
-    let tx;
-    if (inAddr==="native") {
-      tx = await router.swapExactETHForTokens(aom, chosen, to, dl, { value: ai });
+    if (!path) return alert("🚫 Tidak ada LP tersedia.");
+
+    if (tokenIn === "native") {
+      const tx = await router.swapExactETHForTokens(amountOutMin, path, recipient, deadline, { value: amountIn });
+      const r = await tx.wait();
+      return alert(`✅ Swap sukses! Tx: ${r.hash}`);
     } else {
-      const tok = new ethers.Contract(inAddr, ["function allowance(address, address) view returns (uint256)", "function approve(address, uint256) returns (bool)"], signer);
-      if ((await tok.allowance(to, routerAddress)) < ai) { await (await tok.approve(routerAddress, ai)).wait(); }
-      if (outAddr==="native") {
-        tx = await router.swapExactTokensForETH(ai, aom, chosen, to, dl);
+      const token = new ethers.Contract(tokenIn, ["function allowance(address owner, address spender) view returns (uint256)", "function approve(address spender, uint256) returns (bool)"], signer);
+      const allowance = await token.allowance(recipient, routerAddress);
+      if (allowance < amountIn) {
+        const approveTx = await token.approve(routerAddress, amountIn);
+        await approveTx.wait();
+      }
+
+      if (tokenOut === "native") {
+        const tx = await router.swapExactTokensForETH(amountIn, amountOutMin, path, recipient, deadline);
+        const r = await tx.wait();
+        return alert(`✅ Swap sukses! Tx: ${r.hash}`);
       } else {
-        tx = await router.swapExactTokensForTokens(ai, aom, chosen, to, dl);
+        const tx = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, recipient, deadline);
+        const r = await tx.wait();
+        return alert(`✅ Swap sukses! Tx: ${r.hash}`);
       }
     }
-    const r = await tx.wait();
-    alert(`✅ Swap sukses! Tx: ${r.transactionHash}`);
   } catch (e) {
     console.error(e);
     alert("❌ Swap gagal. Periksa jaringan, token, atau LP.");
   }
 }
+
+
+
 
 // add liquidity
 const factoryAddress = "0x122d9a2b9d5113..." /* sesuaikan */;
