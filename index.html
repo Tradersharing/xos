@@ -23,22 +23,22 @@
   <div id="swap" class="page active">
     <div class="swap-container">
       <div class="token-row">
-        <div class="balance-text" id="tokenInBalance">Balance: --</div>
         <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token</span>
         </button>
         <input type="text" id="amount" placeholder="0.00">
       </div>
+      <div class="balance-text" id="tokenInBalance">Balance: --</div>
 
       <div class="token-row">
-        <div class="balance-text" id="tokenOutBalance">Balance: --</div>
         <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token</span>
         </button>
         <input type="text" id="amountOut" placeholder="0.00" disabled>
       </div>
+      <div class="balance-text" id="tokenOutBalance">Balance: --</div>
 
       <div style="margin: 8px 0; text-align: right;">
         <label style="font-size: 13px;">Slippage</label>
@@ -62,20 +62,20 @@
       <p>Pilih 2 token lalu isi jumlah via prompt</p>
 
       <div class="token-row">
-        <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
-        <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
+        <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="liquidityTokenInBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token A</span>
         </button>
       </div>
+      <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
 
       <div class="token-row">
-        <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
-        <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
+        <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="liquidityTokenOutBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token B</span>
         </button>
       </div>
+      <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
 
       <button id="btnAddLiquidity" onclick="addLiquidity()">➕ Add Liquidity</button>
 
