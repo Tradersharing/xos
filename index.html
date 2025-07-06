@@ -63,11 +63,26 @@
   <!-- === Liquidity Page === -->
   <div id="liquidity" class="page">
     <div class="swap-container">
-      <h2>💧 Liquidity</h2>
-      <p>Provide liquidity to earn LP tokens</p>
-      <input placeholder="Token A Amount">
-      <input placeholder="Token B Amount">
-      <button disabled>Add Liquidity (on progress)</button>
+      <h2>💧 Add Liquidity</h2>
+      <p>Pilih 2 token lalu isi jumlah via prompt</p>
+
+      <div class="token-row">
+        <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
+          <img src="assets/icons/blank.png" alt="">
+          <span>Select Token A</span>
+        </button>
+        <div id="tokenInBalance" class="balance-text">Balance: <span class="loading">--</span></div>
+      </div>
+
+      <div class="token-row">
+        <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
+          <img src="assets/icons/blank.png" alt="">
+          <span>Select Token B</span>
+        </button>
+        <div id="tokenOutBalance" class="balance-text">Balance: <span class="loading">--</span></div>
+      </div>
+
+      <button id="btnAddLiquidity" onclick="addLiquidity()">➕ Add Liquidity</button>
     </div>
   </div>
 
