@@ -3,125 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tradersharing Swap</title>
+  <title>TraderSharing Swap</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <script src="app.js" defer></script>
 </head>
 <body>
 
-  <!-- === Custom Header === -->
+  <!-- === Header === -->
   <header class="custom-header">
-    <div class="title">
-      <span class="blue">Trader</span><span class="red">Sharing</span>
-    </div>
+    <div class="title"><span class="blue">Trader</span><span class="red">Sharing</span></div>
     <div class="subtitle">The Professional Swap Token XOS-Testnet</div>
+    <button id="btnConnect" onclick="connectWallet()" style="position: absolute; right: 12px; top: 16px; padding: 8px 14px; font-size: 14px;">Connect</button>
   </header>
 
-  <!-- === Swap Page === -->
+  <!-- === SWAP PAGE === -->
   <div id="swap" class="page active">
     <div class="swap-container">
       <div class="wallet-status" id="walletStatus">Wallet not connected</div>
-      <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
 
       <div class="swap-box">
         <div class="token-row">
           <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
-            <img src="assets/icons/blank.png" alt="">
-            <span>Select Token</span>
+            <img src="assets/icons/blank.png"><span>Select Token</span>
           </button>
           <input type="text" id="amount" placeholder="0.00">
-          <div id="tokenInBalance" class="balance-text">Balance: <span class="loading">--</span></div>
         </div>
+        <div class="balance-text" id="tokenInBalance">Balance: --</div>
 
         <div class="token-row">
           <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
-            <img src="assets/icons/blank.png" alt="">
-            <span>Select Token</span>
+            <img src="assets/icons/blank.png"><span>Select Token</span>
           </button>
           <input type="text" id="amountOut" placeholder="0.00" disabled>
-          <div id="tokenOutBalance" class="balance-text">Balance: <span class="loading">--</span></div>
         </div>
+        <div class="balance-text" id="tokenOutBalance">Balance: --</div>
       </div>
 
-      <div style="margin: 8px 0; text-align: right;">
+      <div style="text-align:right; margin: 10px 0;">
         <label style="font-size: 13px;">Slippage</label>
-        <input type="number" id="slippage" placeholder="1" value="1" min="0" max="100" step="0.1" style="width: 70px; display: inline-block; font-size:13px;">
-        <span style="font-size:13px;">%</span>
+        <input id="slippage" type="number" min="0" max="100" step="0.1" value="1" style="width: 60px;">
+        <span style="font-size: 13px;">%</span>
       </div>
 
       <div id="ratePreview" class="rate-preview"></div>
       <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
-      <div id="result"></div>
 
-      <!-- Hidden input -->
-      <input type="hidden" id="tokenIn">
-      <input type="hidden" id="tokenOut">
+      <!-- Hidden inputs for swap -->
+      <input type="hidden" id="swapTokenIn">
+      <input type="hidden" id="swapTokenOut">
     </div>
   </div>
 
-  <!-- === Liquidity Page === -->
+  <!-- === ADD LIQUIDITY PAGE === -->
   <div id="liquidity" class="page">
     <div class="swap-container">
       <h2>💧 Add Liquidity</h2>
-      <p>Pilih 2 token lalu isi jumlah via prompt</p>
+      <p>Pilih 2 token lalu masukkan jumlah via prompt</p>
 
       <div class="token-row">
         <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token A</span>
+          <img src="assets/icons/blank.png"><span>Select Token A</span>
         </button>
-        <div id="tokenInBalance" class="balance-text">Balance: <span class="loading">--</span></div>
       </div>
+      <div class="balance-text" id="tokenInBalance">Balance: --</div>
 
       <div class="token-row">
         <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token B</span>
+          <img src="assets/icons/blank.png"><span>Select Token B</span>
         </button>
-        <div id="tokenOutBalance" class="balance-text">Balance: <span class="loading">--</span></div>
       </div>
+      <div class="balance-text" id="tokenOutBalance">Balance: --</div>
 
-      <button id="btnAddLiquidity" onclick="addLiquidity()">➕ Add Liquidity</button>
+      <button onclick="addLiquidity()">➕ Add Liquidity</button>
+
+      <!-- Hidden inputs for liquidity -->
+      <input type="hidden" id="liquidityTokenIn">
+      <input type="hidden" id="liquidityTokenOut">
     </div>
   </div>
 
-  <!-- === Staking Page === -->
-  <div id="staking" class="page">
-    <div class="swap-container">
-      <h2>📈 Staking</h2>
-      <p>Stake LP tokens to earn rewards</p>
-      <input placeholder="LP Token Amount">
-      <button disabled>Stake (on progress)</button>
-      <button disabled>Unstake (on progress)</button>
-    </div>
-  </div>
-
-  <!-- === Faucet Page === -->
-  <div id="faucet" class="page">
-    <div class="swap-container">
-      <h2>🌧️ Faucet</h2>
-      <iframe src="https://faucet.x.ink" width="100%" height="500" style="border: none; border-radius: 12px;"></iframe>
-    </div>
-  </div>
-
-  <!-- === Footer Tabs === -->
+  <!-- === FOOTER NAVIGATION === -->
   <div class="footer-space"></div>
   <div class="tab-bar">
     <button class="active" onclick="switchPage('swap', this)">🏠<br>Home</button>
     <button onclick="switchPage('liquidity', this)">💧<br>Liquidity</button>
-    <button onclick="switchPage('staking', this)">📈<br>Staking</button>
-    <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
   </div>
 
-  <!-- === Token Selector Popup === -->
+  <!-- === TOKEN SELECTOR POPUP === -->
   <div id="tokenSelector" class="popup hidden">
     <div class="popup-inner popup-token">
       <div class="popup-header">
         <span>Select a Token</span>
         <button onclick="closeTokenSelector()">✖</button>
       </div>
-      <div class="network-title">XOS Network</div>
       <input type="text" id="searchToken" placeholder="Search name or address">
       <div id="tokenList" class="token-list"></div>
     </div>
