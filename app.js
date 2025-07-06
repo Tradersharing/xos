@@ -9,7 +9,9 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151";
+
+
+const routerAddress = "0x122D9A2B9D5113B54077b057D3082Edf6d305A28";
 const routerAbi = [
   "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) external returns (uint[])",
   "function swapExactETHForTokens(uint amountOutMin, address[] path, address to, uint deadline) payable external returns (uint[])",
@@ -226,7 +228,7 @@ async function doSwap() {
 
 
 // add liquidity
-const factoryAddress = "0x122d9a2b9d5113..." /* sesuaikan */;
+const factoryAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151" /* sesuaikan */;
 const factoryAbi = ["function getPair(address,address) view returns(address)","function createPair(address,address) returns(address)"];
 const lpAbi = ["function mint(address) returns(uint)"];
 async function addLiquidity() {
