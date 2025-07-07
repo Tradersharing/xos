@@ -16,14 +16,14 @@
       <span class="blue">Trader</span><span class="red">Sharing</span>
     </div>
     <div class="subtitle">The Professional Swap Token XOS-Testnet</div>
-    <button id="btnConnect" onclick="connectWallet()">Connect Wallet</button>
+    <button id="btnConnect">Connect Wallet</button>
   </header>
 
   <!-- === Swap Page === -->
   <div id="swap" class="page active">
     <div class="swap-container">
       <div class="token-row">
-        <button class="token-select-btn" onclick="openTokenSelector('tokenIn')" id="tokenInBtn">
+        <button class="token-select-btn" id="tokenInBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token</span>
         </button>
@@ -32,7 +32,7 @@
       <div class="balance-text" id="tokenInBalance">Balance: --</div>
 
       <div class="token-row">
-        <button class="token-select-btn" onclick="openTokenSelector('tokenOut')" id="tokenOutBtn">
+        <button class="token-select-btn" id="tokenOutBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token</span>
         </button>
@@ -47,7 +47,7 @@
       </div>
 
       <div id="ratePreview" class="rate-preview"></div>
-      <button id="btnSwap" onclick="doSwap()" disabled>Swap</button>
+      <button id="btnSwap" disabled>Swap</button>
       <div id="result"></div>
 
       <input type="hidden" id="swapTokenIn">
@@ -62,7 +62,7 @@
       <p>Pilih 2 token lalu isi jumlah via prompt</p>
 
       <div class="token-row">
-        <button class="token-select-btn" onclick="openTokenSelector('liquidityTokenIn')" id="liquidityTokenInBtn">
+        <button class="token-select-btn" id="liquidityTokenInBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token A</span>
         </button>
@@ -70,14 +70,14 @@
       <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
 
       <div class="token-row">
-        <button class="token-select-btn" onclick="openTokenSelector('liquidityTokenOut')" id="liquidityTokenOutBtn">
+        <button class="token-select-btn" id="liquidityTokenOutBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token B</span>
         </button>
       </div>
       <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
 
-      <button id="btnAddLiquidity" onclick="addLiquidity()">➕ Add Liquidity</button>
+      <button id="btnAddLiquidity">➕ Add Liquidity</button>
 
       <input type="hidden" id="liquidityTokenIn">
       <input type="hidden" id="liquidityTokenOut">
@@ -106,10 +106,10 @@
   <!-- === Footer Tabs === -->
   <div class="footer-space"></div>
   <div class="tab-bar">
-    <button class="active" onclick="switchPage('swap', this)">🏠<br>Home</button>
-    <button onclick="switchPage('liquidity', this)">💧<br>Liquidity</button>
-    <button onclick="switchPage('staking', this)">📈<br>Staking</button>
-    <button onclick="switchPage('faucet', this)">🌧️<br>Faucet</button>
+    <button class="active" data-target="swap">🏠<br>Home</button>
+    <button data-target="liquidity">💧<br>Liquidity</button>
+    <button data-target="staking">📈<br>Staking</button>
+    <button data-target="faucet">🌧️<br>Faucet</button>
   </div>
 
   <!-- === Token Selector Popup === -->
