@@ -78,16 +78,17 @@ window.addEventListener("DOMContentLoaded", async () => {
     btn.onclick = () => switchPage(btn);
   });
 
-  window.onclick = e => { if (e.target === tokenSelector) tokenSelector.classList.add("hidden"); };
+  window.onclick = e => {
+    if (e.target === tokenSelector) tokenSelector.classList.add("hidden");
+  };
+
+  document.addEventListener("click", e => {
+    if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item")) {
+      tokenSelector.classList.add("hidden");
+    }
+  });
 
   populateTokenDropdowns();
-});
-
-// === Tambahan: Close selector jika klik luar ===
-document.addEventListener("click", e => {
-  if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item")) {
-    tokenSelector.classList.add("hidden");
-  }
 });
 
 // === Chain & Connection ===
@@ -131,7 +132,7 @@ function updateWalletUI() {
 }
 
 function shortenAddress(addr) {
-  return addr.slice(0,6) + "..." + addr.slice(-4);
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
 // === Token Selector ===
@@ -160,7 +161,7 @@ function populateTokenDropdowns() {
     list.appendChild(div);
     getBalance(tok).then(b => {
       const e = document.getElementById(`bal-${tok.symbol}`);
-      if(e) e.innerText = `Balance: ${b}`;
+      if (e) e.innerText = `Balance: ${b}`;
     });
   });
 }
@@ -226,7 +227,7 @@ async function doSwap() {
       .approve(routerAddress, inWei);
   }
   const path = [selectedSwapIn.address, selectedSwapOut.address];
-  const tx = await routerContract.swapExactTokensForTokens(inWei, 0, path, userAddress, Math.floor(Date.now()/1000)+600);
+  const tx = await routerContract.swapExactTokensForTokens(inWei, 0, path, userAddress, Math.floor(Date.now() / 1000) + 600);
   await tx.wait();
   alert("Swap sukses");
   updateAllBalances();
@@ -253,7 +254,7 @@ async function addLiquidity() {
     amtA, amtB,
     0, 0,
     userAddress,
-    Math.floor(Date.now()/1000) + 600
+    Math.floor(Date.now() / 1000) + 600
   );
   await tx.wait();
   alert("Add Liquidity sukses");
