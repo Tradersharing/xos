@@ -187,15 +187,17 @@ function selectToken(tok) {
 
 function updateSelectionUI(tok) {
   const mapping = {
-    swapIn: "tokenInBtn",
-    swapOut: "tokenOutBtn",
-    liqIn: "liquidityTokenInBtn",
-    liqOut: "liquidityTokenOutBtn"
+    swapIn: { btn: "tokenInBtn", bal: "tokenInBalance" },
+    swapOut: { btn: "tokenOutBtn", bal: "tokenOutBalance" },
+    liqIn: { btn: "liquidityTokenInBtn", bal: "liquidityTokenInBalance" },
+    liqOut: { btn: "liquidityTokenOutBtn", bal: "liquidityTokenOutBalance" }
   };
-  const btnId = mapping[activeSelectionType];
-  const btn = document.getElementById(btnId);
+  const ids = mapping[activeSelectionType];
+  const btn = document.getElementById(ids.btn);
   getBalance(tok).then(bal => {
     btn.innerHTML = `<div class='token-balance-display'>Balance: ${bal}</div><div class='token-symbol'>${tok.symbol}</div>`;
+    const balElem = document.getElementById(ids.bal);
+    if (balElem) balElem.innerText = `Balance: ${bal}`;
   });
 }
 
