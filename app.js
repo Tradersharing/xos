@@ -50,7 +50,7 @@ let selectedLiquidityIn = null;
 let selectedLiquidityOut = null;
 
 // === Initialization ===
-window.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   if (!window.ethereum) return alert("Please install MetaMask or OKX Wallet");
 
   provider = new ethers.BrowserProvider(window.ethereum);
@@ -63,18 +63,16 @@ window.addEventListener("DOMContentLoaded", async () => {
   await ensureCorrectChain();
   await checkWalletConnection();
 
-  document.getElementById("btnConnect").onclick = connectWallet;
-  document.getElementById("tokenInBtn").onclick = () => openTokenSelector("swapIn");
-  document.getElementById("tokenOutBtn").onclick = () => openTokenSelector("swapOut");
-  document.getElementById("liquidityTokenInBtn").onclick = () => openTokenSelector("liqIn");
-  document.getElementById("liquidityTokenOutBtn").onclick = () => openTokenSelector("liqOut");
-  document.getElementById("amount").addEventListener("input", updateSwapPreview);
-  document.getElementById("btnSwap").onclick = doSwap;
-  document.getElementById("btnAddLiquidity").onclick = addLiquidity;
+  document.getElementById("btnConnect")?.addEventListener("click", connectWallet);
+  document.getElementById("tokenInBtn")?.addEventListener("click", () => openTokenSelector("swapIn"));
+  document.getElementById("tokenOutBtn")?.addEventListener("click", () => openTokenSelector("swapOut"));
+  document.getElementById("liquidityTokenInBtn")?.addEventListener("click", () => openTokenSelector("liqIn"));
+  document.getElementById("liquidityTokenOutBtn")?.addEventListener("click", () => openTokenSelector("liqOut"));
+  document.getElementById("amount")?.addEventListener("input", updateSwapPreview);
+  document.getElementById("btnSwap")?.addEventListener("click", doSwap);
+  document.getElementById("btnAddLiquidity")?.addEventListener("click", addLiquidity);
 
   document.querySelectorAll(".tab-bar button").forEach(btn => {
-    const target = btn.getAttribute("onclick")?.match(/'(.+?)'/)?.[1];
-    if (target) btn.dataset.target = target;
     btn.addEventListener("click", () => switchPage(btn));
   });
 
@@ -87,7 +85,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 // === Tambahan: Close selector jika klik luar ===
 document.addEventListener("click", e => {
-  if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item") && e.target.id !== "tokenInBtn" && e.target.id !== "tokenOutBtn" && e.target.id !== "liquidityTokenInBtn" && e.target.id !== "liquidityTokenOutBtn") {
+  if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item") && !e.target.closest(".token-select-btn")) {
     tokenSelector.classList.add("hidden");
   }
 });
@@ -150,6 +148,7 @@ function closeTokenSelector() {
 
 function populateTokenDropdowns() {
   const list = document.getElementById("tokenList");
+  if (!list) return;
   list.innerHTML = "";
   tokenList.forEach(tok => {
     const div = document.createElement("div");
@@ -279,3 +278,4 @@ function switchPage(btn) {
   const target = btn.dataset.target;
   document.getElementById(target).classList.add("active");
 }
+ 
