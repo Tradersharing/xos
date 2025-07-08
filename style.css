@@ -4,170 +4,223 @@ html, body {
   padding: 0;
   height: 100%;
   overflow-x: hidden;
-  background: #000;
+  background: #0a0a0a;
   color: #fff;
   font-family: 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
 }
 
-/* === FORM ELEMENTS === */
-button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 14px;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 12px;
-  font-size: 16px;
-  margin-bottom: 12px;
-  transition: 0.2s ease;
-}
-input:focus {
-  border-color: #00bfff;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0,191,255,0.2);
-}
-
 /* === HEADER === */
 .custom-header {
-  background: #0c0c2c;
-  padding: 20px 15px 10px;
+  background: #111;
+  padding: 20px;
   text-align: center;
-  animation: fadeIn 0.8s ease-out;
-  position: relative;
-  z-index: 200;
+  border-bottom: 1px solid #222;
 }
 .custom-header .title {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: bold;
-  letter-spacing: 0.5px;
 }
 .custom-header .blue { color: #00bfff; }
 .custom-header .red { color: #ff3b30; }
 .custom-header .subtitle {
   font-size: 13px;
-  color: #ccc;
-  margin-top: 5px;
+  color: #aaa;
 }
 
 /* === PAGE === */
 .page {
   flex: 1;
-  display: none !important;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding-bottom: 60px;
+  display: none;
+  padding: 20px 16px 80px;
   overflow-y: auto;
 }
 .page.active {
-  display: flex !important;
+  display: block;
 }
 
-/* === CONTAINER === */
+/* === SWAP CONTAINER === */
 .swap-container {
-  background: #111;
-  margin: 24px auto;
+  background: #161616;
   padding: 24px;
-  border-radius: 20px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
   max-width: 420px;
-  animation: fadeInUp 0.6s ease-in-out;
+  margin: 20px auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 
-/* === WALLET STATUS & BUTTONS === */
-.wallet-status { text-align: center; margin-bottom: 12px; font-size: 14px; color: #aaa; }
-#btnConnect {
-  background: linear-gradient(135deg, #00bfff, #ff3b30);
-  color: #fff; font-weight: bold; width: 100%; margin-bottom: 16px;
+/* === WALLET === */
+#walletStatus {
+  text-align: center;
+  color: #aaa;
+  margin-bottom: 10px;
 }
-#btnSwap {
-  background: linear-gradient(135deg, #ff3b30, #00bfff);
-  color: #fff; width: 100%; margin-top: 20px; font-size: 17px;
+#btnConnect, #btnSwap, #btnAddLiquidity {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-weight: bold;
+  font-size: 16px;
+  background: linear-gradient(to right, #ff3b30, #00bfff);
+  color: white;
+  margin-top: 12px;
+  cursor: pointer;
+}
+#btnConnect:hover, #btnSwap:hover, #btnAddLiquidity:hover {
+  opacity: 0.9;
 }
 
 /* === TOKEN ROW === */
 .token-row {
-  display: flex; align-items: center; justify-content: space-between;
-  background: #222; border-radius: 14px; padding: 14px; margin-bottom: 16px; border: 1px solid #333;
+  display: flex;
+  align-items: center;
+  background: #222;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  justify-content: space-between;
+  border: 1px solid #333;
 }
 .token-select-btn {
-  display: flex; align-items: center; gap: 10px;
-  font-weight: 600; padding: 8px 14px; border-radius: 14px; background: #333; border: 1px solid #666; cursor: pointer; transition: 0.2s ease;
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
 }
-.token-select-btn:hover { background: #444; }
-.token-select-btn::after { content: "⏷"; margin-left: 8px; color: #ccc; }
+.token-select-btn::after {
+  content: ' \25BE';
+  margin-left: 6px;
+  color: #ccc;
+}
 .token-row input {
-  flex: 1; border: none; background: transparent; font-size: 20px; text-align: right; color: #fff; font-weight: 600;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  text-align: right;
+  flex: 1;
 }
-.balance-text { font-size: 13px; color: #aaa; text-align: right; margin-top: 4px; }
+.balance-text {
+  font-size: 13px;
+  color: #aaa;
+  text-align: right;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
 
 /* === RATE & RESULT === */
-.rate-preview { text-align: center; margin-top: 8px; font-size: 13px; color: #aaa; font-style: italic; }
-#result { margin-top: 14px; font-size: 15px; color: #0f0; text-align: center; word-break: break-word; }
+.rate-preview {
+  font-size: 12px;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  margin-top: 6px;
+}
+#result {
+  margin-top: 12px;
+  color: #0f0;
+  text-align: center;
+  font-size: 14px;
+}
 
-/* === TABS & FOOTER === */
-.footer-space { height: 0; }
+/* === TAB BAR === */
 .tab-bar {
   position: fixed;
-  bottom: 0; left: 0; width: 100%;
-  background: #111; border-top: 1px solid #333;
-  display: flex; justify-content: space-around;
-  padding: 6px 0; z-index: 100;
+  bottom: 0;
+  width: 100%;
+  background: #111;
+  display: flex;
+  border-top: 1px solid #222;
+  z-index: 10;
 }
 .tab-bar button {
-  background: none; color: #888; border: none; font-size: 12px; flex: 1; text-align: center;
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  color: #888;
+  font-weight: 500;
+  font-size: 13px;
 }
-.tab-bar button.active { font-weight: bold; color: #0ff; }
+.tab-bar button.active {
+  color: #00ffff;
+  font-weight: bold;
+}
 
-/* === POPUP TOKEN === */
-#tokenSelector {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
+/* === POPUP === */
+#tokenSelector.popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75);
   display: none;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 999;
 }
-#tokenSelector:not(.hidden) {
+#tokenSelector.popup:not(.hidden) {
   display: flex;
 }
-#tokenList {
+.popup-inner {
   background: #111;
   padding: 20px;
-  border-radius: 20px;
+  border-radius: 16px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #fff;
+}
+#searchToken {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: #1a1a1a;
+  color: #fff;
+  margin-bottom: 14px;
+}
+.token-list {
+  max-height: 300px;
   overflow-y: auto;
-  max-height: 80vh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .token-item {
-  background: #1e1e1e; padding: 12px 16px; border-radius: 14px;
-  display: flex; justify-content: space-between; align-items: center;
-  cursor: pointer; transition: 0.2s ease; border: 1px solid #333;
+  background: #222;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid #333;
+  cursor: pointer;
+  color: #fff;
 }
-.token-item:hover { background: #2a2a2a; transform: scale(1.01); }
-.token-symbol { font-weight: 700; color: #fff; }
-.token-balance.loading::after { content: ' ⏳'; animation: spin 1s linear infinite; display: inline-block; margin-left: 6px; }
+.token-item:hover {
+  background: #2a2a2a;
+}
+.token-symbol {
+  font-weight: bold;
+}
+.token-balance.loading::after {
+  content: ' ⏳';
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-left: 6px;
+}
 
-/* === ANIMATIONS === */
-@keyframes fadeIn { from { opacity: 0;} to { opacity: 1;} }
-@keyframes popUp { from { opacity: 0; transform: scale(0.95);} to { opacity: 1; transform: scale(1);} }
-@keyframes fadeInUp { from { transform: translateY(40px); opacity: 0;} to { transform: translateY(0); opacity: 1);} }
-@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
