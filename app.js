@@ -140,7 +140,7 @@ function shortenAddress(addr) {
 function openTokenSelector(type) {
   activeSelectionType = type;
   tokenSelector.classList.remove("hidden");
-  tokenSelector.style.display = "block";
+  tokenSelector.style.display = "flex";
 }
 
 function closeTokenSelector() {
