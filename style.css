@@ -47,6 +47,8 @@ input:focus {
   padding: 20px 15px 10px;
   text-align: center;
   animation: fadeIn 0.8s ease-out;
+  position: relative;
+  z-index: 200;
 }
 .custom-header .title {
   font-size: 26px;
@@ -64,11 +66,14 @@ input:focus {
 /* === PAGE === */
 .page {
   flex: 1;
-  display: flex;
+  display: none !important;
   flex-direction: column;
   justify-content: flex-start;
   padding-bottom: 60px;
   overflow-y: auto;
+}
+.page.active {
+  display: flex !important;
 }
 
 /* === CONTAINER === */
@@ -128,27 +133,36 @@ input:focus {
 .tab-bar button.active { font-weight: bold; color: #0ff; }
 
 /* === POPUP TOKEN === */
-.popup {
+#tokenSelector {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; animation: fadeIn 0.3s ease-in-out;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
-.popup.hidden { display: none; }
-.popup-inner {
-  background: #111; padding: 26px; border-radius: 20px; width: 90%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); animation: popUp 0.3s ease-out;
+#tokenSelector:not(.hidden) {
+  display: flex;
 }
-.popup-header {
-  font-size: 18px; font-weight: bold; margin-bottom: 14px; color: #fff; display: flex; justify-content: space-between; align-items: center;
+#tokenList {
+  background: #111;
+  padding: 20px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  overflow-y: auto;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-#searchToken {
-  border-radius: 12px; border: 1px solid #555; padding: 12px; font-size: 15px; margin-bottom: 16px; background: #222; color: #fff;
-}
-.token-list { display: flex; flex-direction: column; gap: 10px; }
 .token-item {
-  background: #1e1e1e; padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s ease; border: 1px solid #333;
+  background: #1e1e1e; padding: 12px 16px; border-radius: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer; transition: 0.2s ease; border: 1px solid #333;
 }
 .token-item:hover { background: #2a2a2a; transform: scale(1.01); }
-.token-info { display: flex; align-items: center; gap: 14px; }
-.token-info img { width: 32px; height: 32px; border-radius: 50%; }
 .token-symbol { font-weight: 700; color: #fff; }
 .token-balance.loading::after { content: ' ⏳'; animation: spin 1s linear infinite; display: inline-block; margin-left: 6px; }
 
@@ -157,31 +171,3 @@ input:focus {
 @keyframes popUp { from { opacity: 0; transform: scale(0.95);} to { opacity: 1; transform: scale(1);} }
 @keyframes fadeInUp { from { transform: translateY(40px); opacity: 0;} to { transform: translateY(0); opacity: 1);} }
 @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-
-  /* di paling bawah style.css */
-
-/* 1) Sembunyikan page yang bukan active */
-.page {
-  display: none !important;
-}
-.page.active {
-  display: flex !important;
-}
-
-/* 2) Pastikan popup yang hidden benar-benar non-interaktif */
-.popup.hidden {
-  display: none !important;
-  pointer-events: none;
-}
-
-/* 3) Biar header (Connect Wallet) selalu di atas */
-.custom-header {
-  position: relative;
-  z-index: 200;
-}
-
-/* 4) Biarkan overlay popup muncul di atas page */
-.popup {
-  z-index: 1000;
-}
-
