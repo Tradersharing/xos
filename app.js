@@ -75,17 +75,19 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".tab-bar button").forEach(btn => {
     const target = btn.getAttribute("onclick")?.match(/'(.+?)'/)?.[1];
     if (target) btn.dataset.target = target;
-    btn.onclick = () => switchPage(btn);
+    btn.addEventListener("click", () => switchPage(btn));
   });
 
-  window.onclick = e => { if (e.target === tokenSelector) tokenSelector.classList.add("hidden"); };
+  window.addEventListener("click", e => {
+    if (e.target === tokenSelector) tokenSelector.classList.add("hidden");
+  });
 
   populateTokenDropdowns();
 });
 
 // === Tambahan: Close selector jika klik luar ===
 document.addEventListener("click", e => {
-  if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item")) {
+  if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item") && e.target.id !== "tokenInBtn" && e.target.id !== "tokenOutBtn" && e.target.id !== "liquidityTokenInBtn" && e.target.id !== "liquidityTokenOutBtn") {
     tokenSelector.classList.add("hidden");
   }
 });
@@ -138,10 +140,12 @@ function shortenAddress(addr) {
 function openTokenSelector(type) {
   activeSelectionType = type;
   tokenSelector.classList.remove("hidden");
+  tokenSelector.style.display = "block";
 }
 
 function closeTokenSelector() {
   tokenSelector.classList.add("hidden");
+  tokenSelector.style.display = "none";
 }
 
 function populateTokenDropdowns() {
@@ -275,4 +279,3 @@ function switchPage(btn) {
   const target = btn.dataset.target;
   document.getElementById(target).classList.add("active");
 }
-// Function to open the token selector and activate popup
