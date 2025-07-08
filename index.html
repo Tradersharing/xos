@@ -1,129 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TraderSharing Swap</title>
+  <title>Swap UI</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
-  <script src="app.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-
-  <!-- === Custom Header === -->
-  <header class="custom-header">
-    <div class="title">
-      <span class="blue">Trader</span><span class="red">Sharing</span>
-    </div>
-    <div class="subtitle">The Professional Swap Token XOS-Testnet</div>
-    <button id="btnConnect">Connect Wallet</button>
-  </header>
-
-  <!-- === Swap Page === -->
-  <div id="swap" class="page active">
-    <div class="swap-container">
-      <div class="token-row">
-        <button class="token-select-btn" id="tokenInBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token</span>
-        </button>
-        <input type="text" id="amount" placeholder="0.00">
-      </div>
-      <div class="balance-text" id="tokenInBalance">Balance: --</div>
-
-      <div class="token-row">
-        <button class="token-select-btn" id="tokenOutBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token</span>
-        </button>
-        <input type="text" id="amountOut" placeholder="0.00" disabled>
-      </div>
-      <div class="balance-text" id="tokenOutBalance">Balance: --</div>
-
-      <div style="margin: 8px 0; text-align: right;">
-        <label style="font-size: 13px;">Slippage</label>
-        <input type="number" id="slippage" placeholder="1" value="1" min="0" max="100" step="0.1" style="width: 70px; display: inline-block; font-size:13px;">
-        <span style="font-size:13px;">%</span>
-      </div>
-
-      <div id="ratePreview" class="rate-preview"></div>
-      <button id="btnSwap" disabled>Swap</button>
-      <div id="result"></div>
-
-      <input type="hidden" id="swapTokenIn">
-      <input type="hidden" id="swapTokenOut">
-    </div>
-  </div>
-
-  <!-- === Liquidity Page === -->
-  <div id="liquidity" class="page">
-    <div class="swap-container">
-      <h2>💧 Add Liquidity</h2>
-      <p>Pilih 2 token lalu isi jumlah via prompt</p>
-
-      <div class="token-row">
-        <button class="token-select-btn" id="liquidityTokenInBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token A</span>
-        </button>
-      </div>
-      <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
-
-      <div class="token-row">
-        <button class="token-select-btn" id="liquidityTokenOutBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token B</span>
-        </button>
-      </div>
-      <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
-
-      <button id="btnAddLiquidity">➕ Add Liquidity</button>
-
-      <input type="hidden" id="liquidityTokenIn">
-      <input type="hidden" id="liquidityTokenOut">
-    </div>
-  </div>
-
-  <!-- === Staking Page === -->
-  <div id="staking" class="page">
-    <div class="swap-container">
-      <h2>📈 Staking</h2>
-      <p>Stake LP tokens to earn rewards</p>
-      <input placeholder="LP Token Amount">
-      <button disabled>Stake (on progress)</button>
-      <button disabled>Unstake (on progress)</button>
-    </div>
-  </div>
-
-  <!-- === Faucet Page === -->
-  <div id="faucet" class="page">
-    <div class="swap-container">
-      <h2>🌧️ Faucet</h2>
-      <iframe src="https://faucet.x.ink" width="100%" height="500" style="border: none; border-radius: 12px;"></iframe>
-    </div>
-  </div>
-
-  <!-- === Footer Tabs === -->
-  <div class="footer-space"></div>
   <div class="tab-bar">
-    <button class="active" data-target="swap">🏠<br>Home</button>
-    <button data-target="liquidity">💧<br>Liquidity</button>
-    <button data-target="staking">📈<br>Staking</button>
-    <button data-target="faucet">🌧️<br>Faucet</button>
+    <button data-target="home" class="active">Home</button>
+    <button data-target="staking">Staking</button>
+    <button data-target="faucet">Faucet</button>
   </div>
 
-      <!-- === Token Selector Popup === -->
-  <div id="tokenSelector" class="popup hidden">
-    <div class="popup-inner popup-token">
-      <div class="popup-header">
-        <span>Select a Token</span>
-        <button onclick="closeTokenSelector()">✖</button>
-      </div>
-      <div class="network-title">XOS Network</div>
-      <input type="text" id="searchToken" placeholder="Search name or address">
-      <div id="tokenList" class="token-list"></div>
-    </div>
-  </div>                                          
+  <div id="home" class="page active">
+    <button id="btnConnect">Connect Wallet</button>
+    <div id="walletStatus">Not connected</div>
 
+    <div class="swap-box">
+      <button id="tokenInBtn">Pilih Token Masuk</button>
+      <div id="tokenInBalance"></div>
+
+      <input type="text" id="amount" placeholder="Amount In">
+
+      <button id="tokenOutBtn">Pilih Token Keluar</button>
+      <div id="tokenOutBalance"></div>
+
+      <input type="text" id="amountOut" placeholder="Estimated Out" readonly>
+
+      <button id="btnSwap">Swap</button>
+    </div>
+
+    <div class="liquidity-box">
+      <button id="liquidityTokenInBtn">Pilih Token A</button>
+      <div id="liquidityTokenInBalance"></div>
+      <button id="liquidityTokenOutBtn">Pilih Token B</button>
+      <div id="liquidityTokenOutBalance"></div>
+      <button id="btnAddLiquidity">Add Liquidity</button>
+    </div>
+  </div>
+
+  <div id="staking" class="page">Halaman staking</div>
+  <div id="faucet" class="page">Halaman faucet</div>
+
+  <!-- Token Selector Popup -->
+  <div id="tokenSelector" class="hidden">
+    <div id="tokenList"></div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
