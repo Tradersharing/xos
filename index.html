@@ -27,7 +27,7 @@
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token</span>
         </button>
-        <input type="text" id="amount" placeholder="0.00">
+        <input type="number" id="amount" placeholder="0.00">
       </div>
       <div class="balance-text" id="tokenInBalance">Balance: --</div>
 
@@ -47,7 +47,7 @@
       </div>
 
       <div id="ratePreview" class="rate-preview"></div>
-      <button id="btnSwap" disabled>Swap</button>
+      <button id="btnSwap">Swap</button>
       <div id="result"></div>
 
       <input type="hidden" id="swapTokenIn">
@@ -59,13 +59,14 @@
   <div id="liquidity" class="page">
     <div class="swap-container">
       <h2>💧 Add Liquidity</h2>
-      <p>Pilih 2 token lalu isi jumlah via prompt</p>
+      <p>Pilih 2 token lalu isi jumlah</p>
 
       <div class="token-row">
         <button class="token-select-btn" id="liquidityTokenInBtn">
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token A</span>
         </button>
+        <input type="number" id="liquidityAmountA" placeholder="0.00">
       </div>
       <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
 
@@ -74,6 +75,7 @@
           <img src="assets/icons/blank.png" alt="">
           <span>Select Token B</span>
         </button>
+        <input type="number" id="liquidityAmountB" placeholder="0.00">
       </div>
       <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
 
