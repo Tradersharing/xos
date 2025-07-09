@@ -127,7 +127,9 @@ async function connectWallet() {
 function updateWalletUI() {
   const status = document.getElementById("walletStatus");
   if (status) status.innerText = `Connected: ${shortenAddress(userAddress)}`;
-  document.getElementById("btnConnect").innerText = "Connected";
+  const btn = document.getElementById("btnConnect");
+  btn.innerText = "Connected";
+  btn.disabled = false;
 }
 
 function shortenAddress(addr) {
@@ -180,6 +182,11 @@ async function getBalance(tok) {
 }
 
 function selectToken(tok) {
+  // Prevent selecting same token
+  if ((activeSelectionType === "swapIn" && selectedSwapOut?.symbol === tok.symbol) ||
+      (activeSelectionType === "swapOut" && selectedSwapIn?.symbol === tok.symbol)) {
+    return alert("Token sudah dipilih di sisi lain.");
+  }
   if (activeSelectionType === "swapIn") selectedSwapIn = tok;
   if (activeSelectionType === "swapOut") selectedSwapOut = tok;
   if (activeSelectionType === "liqIn") selectedLiquidityIn = tok;
@@ -217,50 +224,67 @@ async function updateSwapPreview() {
     amtOutElem.value = ethers.formatUnits(amounts[1], selectedSwapOut.decimals);
   } catch (e) {
     amtOutElem.value = "";
+    console.error("Preview error:", e);
   }
 }
 
 async function doSwap() {
-  if (!selectedSwapIn || !selectedSwapOut) return alert("Pilih token swap in/out");
-  const val = document.getElementById("amount").value;
-  const inWei = ethers.parseUnits(val, selectedSwapIn.decimals);
-  if (selectedSwapIn.address !== "native") {
-    await new ethers.Contract(selectedSwapIn.address, ["function approve(address,uint256) returns(bool)"], signer)
-      .approve(routerAddress, inWei);
+  try {
+    if (!selectedSwapIn || !selectedSwapOut) return alert("Pilih token swap in/out");
+    const val = document.getElementById("amount").value;
+    if (!val || isNaN(val)) return alert("Isi jumlah yang valid");
+    const inWei = ethers.parseUnits(val, selectedSwapIn.decimals);
+
+    const balance = await getBalance(selectedSwapIn);
+    if (parseFloat(val) > parseFloat(balance)) return alert("Jumlah melebihi saldo");
+
+    if (selectedSwapIn.address !== "native") {
+      await new ethers.Contract(selectedSwapIn.address, ["function approve(address,uint256) returns(bool)"], signer)
+        .approve(routerAddress, inWei);
+    }
+    const path = [selectedSwapIn.address, selectedSwapOut.address];
+    const tx = await routerContract.swapExactTokensForTokens(inWei, 0, path, userAddress, Math.floor(Date.now()/1000)+600);
+    await tx.wait();
+    alert("Swap sukses");
+    updateAllBalances();
+  } catch (err) {
+    console.error("Swap error:", err);
+    alert("Swap gagal: " + err.message);
   }
-  const path = [selectedSwapIn.address, selectedSwapOut.address];
-  const tx = await routerContract.swapExactTokensForTokens(inWei, 0, path, userAddress, Math.floor(Date.now()/1000)+600);
-  await tx.wait();
-  alert("Swap sukses");
-  updateAllBalances();
 }
 
 // === Add Liquidity ===
 async function addLiquidity() {
-  if (!selectedLiquidityIn || !selectedLiquidityOut) return alert("Pilih token liquidity A/B");
-  const aVal = prompt("Jumlah Token A");
-  const bVal = prompt("Jumlah Token B");
-  const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
-  const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
-  if (selectedLiquidityIn.address !== "native") {
-    await new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer)
-      .approve(routerAddress, amtA);
+  try {
+    if (!selectedLiquidityIn || !selectedLiquidityOut) return alert("Pilih token liquidity A/B");
+    const aVal = prompt("Jumlah Token A");
+    const bVal = prompt("Jumlah Token B");
+    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal)) return alert("Masukkan jumlah valid");
+    const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
+    const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
+    if (selectedLiquidityIn.address !== "native") {
+      await new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer)
+        .approve(routerAddress, amtA);
+    }
+    if (selectedLiquidityOut.address !== "native") {
+      await new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer)
+        .approve(routerAddress, amtB);
+    }
+    const tx = await routerContract.addLiquidity(
+      selectedLiquidityIn.address,
+      selectedLiquidityOut.address,
+      amtA, amtB,
+      0, 0,
+      userAddress,
+      Math.floor(Date.now()/1000) + 600
+    );
+    await tx.wait();
+    alert("Add Liquidity sukses");
+    updateAllBalances();
+  } catch (e) {
+    console.error("Liquidity error:", e);
+    alert("Gagal tambah liquidity: " + e.message);
   }
-  if (selectedLiquidityOut.address !== "native") {
-    await new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer)
-      .approve(routerAddress, amtB);
-  }
-  const tx = await routerContract.addLiquidity(
-    selectedLiquidityIn.address,
-    selectedLiquidityOut.address,
-    amtA, amtB,
-    0, 0,
-    userAddress,
-    Math.floor(Date.now()/1000) + 600
-  );
-  await tx.wait();
-  alert("Add Liquidity sukses");
-  updateAllBalances();
 }
 
 // === Balance Refresh ===
@@ -278,4 +302,3 @@ function switchPage(btn) {
   const target = btn.dataset.target;
   document.getElementById(target).classList.add("active");
 }
- 
