@@ -235,3 +235,13 @@ button:hover {
   text-align: right;
   padding-left: 10px;
 }
+/* Pastikan input di liquidity section selalu terlihat dan bisa diklik */
+#liquidity .token-row input[type="number"] {
+  display: inline-block !important;
+  width: calc(100% - 100px) !important; /* sesuaikan 100px dengan lebar tombol */
+  padding: 8px;
+  margin-left: 8px;
+  font-size: 14px;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
