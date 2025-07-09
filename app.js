@@ -36,7 +36,7 @@ const tokenList = [
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS", decimals: 18 },
   { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT", decimals: 6 },
   { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC", decimals: 6 },
-  { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "TSR", decimals: 18 }
+  { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap", decimals: 18 }
 ];
 
 // Contracts
@@ -348,80 +348,72 @@ async function doSwap() {
 }
 
 // === Add Liquidity ===
-// === Add Liquidity ===
 async function addLiquidity() {
   try {
-    if (!selectedLiquidityIn || !selectedLiquidityOut)
-      return alert("Pilih token liquidity A dan B");
+    if (!selectedLiquidityIn || !selectedLiquidityOut) return alert("Pilih token liquidity A/B");
 
-    const aVal = document.getElementById("liquidityAmountA").value;
-    const bVal = document.getElementById("liquidityAmountB").value;
+    // Ambil nilai manual user
+    let aVal = document.getElementById("liquidityAmountA").value;
+    let bVal = document.getElementById("liquidityAmountB").value;
 
-    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal))
-      return alert("Masukkan jumlah valid di kedua kolom");
+    // Jika salah satu kosong, hitung otomatis berdasarkan harga awal
+    if ((!aVal || isNaN(aVal)) && (!bVal || isNaN(bVal))) {
+      return alert("Isi setidaknya satu jumlah (A atau B)");
+    }
+
+    const symbolA = selectedLiquidityIn.symbol.toUpperCase();
+    const symbolB = selectedLiquidityOut.symbol.toUpperCase();
+
+    // Deteksi pasangan USDT-TSWAP
+    const isUsdtTswap = (symbolA === "USDT" && symbolB === "TSWAP") || (symbolA === "TSWAP" && symbolB === "USDT");
+
+    if (isUsdtTswap) {
+      if (symbolA === "USDT" && aVal && (!bVal || isNaN(bVal))) {
+        bVal = (parseFloat(aVal) / 0.001).toString(); // USDT → TSWAP
+        document.getElementById("liquidityAmountB").value = bVal;
+      }
+      if (symbolB === "USDT" && bVal && (!aVal || isNaN(aVal))) {
+        aVal = (parseFloat(bVal) / 0.001).toString(); // USDT ← TSWAP
+        document.getElementById("liquidityAmountA").value = aVal;
+      }
+    }
+
+    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal)) return alert("Masukkan jumlah valid");
 
     const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
 
-    // Approve token jika bukan native
+    // Approve token A & B
     if (selectedLiquidityIn.address !== "native") {
-      await new ethers.Contract(
-        selectedLiquidityIn.address,
-        ["function approve(address,uint256) returns(bool)"],
-        signer
-      ).approve(routerAddress, amtA);
+      await new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer)
+        .approve(routerAddress, amtA);
     }
     if (selectedLiquidityOut.address !== "native") {
-      await new ethers.Contract(
-        selectedLiquidityOut.address,
-        ["function approve(address,uint256) returns(bool)"],
-        signer
-      ).approve(routerAddress, amtB);
-    }
-
-    // Cek & buat pair jika belum ada
-    const pairAddress = await factoryContract.getPair(
-      selectedLiquidityIn.address,
-      selectedLiquidityOut.address
-    );
-    if (
-      pairAddress === "0x0000000000000000000000000000000000000000"
-    ) {
-      const tx = await factoryContract.createPair(
-        selectedLiquidityIn.address,
-        selectedLiquidityOut.address
-      );
-      await tx.wait();
-      console.log("Pair baru berhasil dibuat");
+      await new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer)
+        .approve(routerAddress, amtB);
     }
 
     // Add liquidity
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
-      amtA,
-      amtB,
-      0,
-      0,
+      amtA, amtB,
+      0, 0,
       userAddress,
-      Math.floor(Date.now() / 1000) + 600
+      Math.floor(Date.now()/1000) + 600
     );
     await tx.wait();
-
-    // Tampilkan harga
-    const price = parseFloat(bVal) / parseFloat(aVal);
-    alert(
-      `Add Liquidity sukses!\n1 ${selectedLiquidityIn.symbol} ≈ ${price.toFixed(
-        4
-      )} ${selectedLiquidityOut.symbol}`
-    );
+    alert("Add Liquidity sukses");
     updateAllBalances();
+
   } catch (e) {
-    console.error("Add LP error:", e);
+    console.error("Liquidity error:", e);
     alert("Gagal tambah liquidity: " + e.message);
   }
 }
 
+
+    
 // === Balance Refresh ===
 async function updateAllBalances() {
   for (let tok of tokenList) {
