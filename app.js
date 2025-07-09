@@ -51,8 +51,30 @@ let selectedLiquidityOut = null;
 
 // === Initialization ===
 document.addEventListener("DOMContentLoaded", async () => {
-  if (!window.ethereum) return alert("Please install MetaMask or OKX Wallet");
+  // UPDATED: tombol Connect Wallet selalu aktif
+  const btnConnect = document.getElementById("btnConnect");
+  if (btnConnect) {
+    btnConnect.disabled = false;
+    btnConnect.addEventListener("click", async () => {
+      if (!window.ethereum) {
+        alert("MetaMask atau wallet Web3 tidak ditemukan. Silakan install terlebih dahulu.");
+        return;
+      }
+      try {
+        await connectWallet();
+      } catch (e) {
+        console.error("Connect wallet error:", e);
+      }
+    });
+  }
 
+  if (!window.ethereum) {
+    alert("MetaMask atau wallet Web3 belum terpasang. Silakan install terlebih dahulu.");
+    disableAllWeb3Features();
+    return;
+  }
+
+  // Inisialisasi provider dan signer hanya jika wallet tersedia
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
   routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
@@ -61,9 +83,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   tokenSelector = document.getElementById("tokenSelector");
 
   await ensureCorrectChain();
-  await checkWalletConnection();
 
-  document.getElementById("btnConnect")?.addEventListener("click", connectWallet);
+  await tryAutoConnect();
+
   document.getElementById("tokenInBtn")?.addEventListener("click", () => openTokenSelector("swapIn"));
   document.getElementById("tokenOutBtn")?.addEventListener("click", () => openTokenSelector("swapOut"));
   document.getElementById("liquidityTokenInBtn")?.addEventListener("click", () => openTokenSelector("liqIn"));
@@ -81,17 +103,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   populateTokenDropdowns();
-});
 
-// === Tambahan: Close selector jika klik luar ===
-document.addEventListener("click", e => {
-  if (!tokenSelector.contains(e.target) && !e.target.closest(".token-item") && !e.target.closest(".token-select-btn")) {
-    tokenSelector.classList.add("hidden");
+  // UPDATED: event listeners untuk account & chain changes
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accounts.length === 0) {
+        userAddress = null;
+        resetUI();
+      } else {
+        userAddress = accounts[0];
+        updateWalletUI();
+        updateAllBalances();
+      }
+    });
+    window.ethereum.on("chainChanged", (chainId) => {
+      window.location.reload();
+    });
   }
 });
 
+// === Disable semua fitur Web3 saat wallet tidak tersedia ===
+function disableAllWeb3Features() {
+  document.getElementById("btnConnect").disabled = true;
+  ["stakingBtn", "faucetBtn", "lpBtn"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+  const status = document.getElementById("walletStatus");
+  if (status) status.innerText = "Wallet Web3 tidak ditemukan, silakan install MetaMask.";
+}
+
 // === Chain & Connection ===
 async function ensureCorrectChain() {
+  if (!window.ethereum) return;
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== CHAIN_ID_HEX) {
     try {
@@ -104,36 +148,86 @@ async function ensureCorrectChain() {
   }
 }
 
-async function checkWalletConnection() {
-  const accounts = await provider.send("eth_accounts", []);
-  if (accounts.length > 0) {
-    userAddress = accounts[0];
-    updateWalletUI();
-    updateAllBalances();
+// UPDATED: auto connect wallet jika sebelumnya sudah connect
+async function tryAutoConnect() {
+  if (!window.ethereum) return;
+  try {
+    const accounts = await provider.send("eth_accounts", []);
+    if (accounts.length > 0) {
+      userAddress = accounts[0];
+      signer = await provider.getSigner();
+      updateWalletUI();
+      updateAllBalances();
+    } else {
+      resetUI();
+    }
+  } catch (e) {
+    console.error("Auto connect error:", e);
+    resetUI();
   }
 }
 
+// UPDATED: fungsi connect wallet manual
 async function connectWallet() {
+  if (!window.ethereum) {
+    alert("MetaMask atau wallet Web3 tidak ditemukan. Silakan install terlebih dahulu.");
+    return;
+  }
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
-    userAddress = accounts[0];
-    updateWalletUI();
-    updateAllBalances();
+    if (accounts.length > 0) {
+      userAddress = accounts[0];
+      signer = await provider.getSigner();
+      updateWalletUI();
+      updateAllBalances();
+    } else {
+      resetUI();
+    }
   } catch (e) {
-    console.error("Failed connect", e);
+    console.error("Connect wallet failed:", e);
+    resetUI();
   }
 }
 
+// UPDATED: update UI lebih lengkap
 function updateWalletUI() {
   const status = document.getElementById("walletStatus");
   if (status) status.innerText = `Connected: ${shortenAddress(userAddress)}`;
+
   const btn = document.getElementById("btnConnect");
-  btn.innerText = "Connected";
-  btn.disabled = false;
+  if (btn) {
+    btn.innerText = "Connected";
+    btn.disabled = true;
+  }
+
+  // Enable fitur lain yang butuh wallet
+  ["stakingBtn", "faucetBtn", "lpBtn"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+}
+
+function resetUI() {
+  userAddress = null;
+
+  const status = document.getElementById("walletStatus");
+  if (status) status.innerText = "Not connected";
+
+  const btn = document.getElementById("btnConnect");
+  if (btn) {
+    btn.innerText = "Connect Wallet";
+    btn.disabled = false;
+  }
+
+  // Disable fitur lain saat belum connect
+  ["stakingBtn", "faucetBtn", "lpBtn"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
 }
 
 function shortenAddress(addr) {
-  return addr.slice(0,6) + "..." + addr.slice(-4);
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
 // === Token Selector ===
@@ -165,7 +259,7 @@ function populateTokenDropdowns() {
     list.appendChild(div);
     getBalance(tok).then(b => {
       const e = document.getElementById(`bal-${tok.symbol}`);
-      if(e) e.innerText = `Balance: ${b}`;
+      if (e) e.innerText = `Balance: ${b}`;
     });
   });
 }
