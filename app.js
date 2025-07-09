@@ -348,35 +348,76 @@ async function doSwap() {
 }
 
 // === Add Liquidity ===
+// === Add Liquidity ===
 async function addLiquidity() {
   try {
-    if (!selectedLiquidityIn || !selectedLiquidityOut) return alert("Pilih token liquidity A/B");
-    const aVal = prompt("Jumlah Token A");
-    const bVal = prompt("Jumlah Token B");
-    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal)) return alert("Masukkan jumlah valid");
+    if (!selectedLiquidityIn || !selectedLiquidityOut)
+      return alert("Pilih token liquidity A dan B");
+
+    const aVal = document.getElementById("liquidityAmountA").value;
+    const bVal = document.getElementById("liquidityAmountB").value;
+
+    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal))
+      return alert("Masukkan jumlah valid di kedua kolom");
+
     const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
+
+    // Approve token jika bukan native
     if (selectedLiquidityIn.address !== "native") {
-      await new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer)
-        .approve(routerAddress, amtA);
+      await new ethers.Contract(
+        selectedLiquidityIn.address,
+        ["function approve(address,uint256) returns(bool)"],
+        signer
+      ).approve(routerAddress, amtA);
     }
     if (selectedLiquidityOut.address !== "native") {
-      await new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer)
-        .approve(routerAddress, amtB);
+      await new ethers.Contract(
+        selectedLiquidityOut.address,
+        ["function approve(address,uint256) returns(bool)"],
+        signer
+      ).approve(routerAddress, amtB);
     }
+
+    // Cek & buat pair jika belum ada
+    const pairAddress = await factoryContract.getPair(
+      selectedLiquidityIn.address,
+      selectedLiquidityOut.address
+    );
+    if (
+      pairAddress === "0x0000000000000000000000000000000000000000"
+    ) {
+      const tx = await factoryContract.createPair(
+        selectedLiquidityIn.address,
+        selectedLiquidityOut.address
+      );
+      await tx.wait();
+      console.log("Pair baru berhasil dibuat");
+    }
+
+    // Add liquidity
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
-      amtA, amtB,
-      0, 0,
+      amtA,
+      amtB,
+      0,
+      0,
       userAddress,
-      Math.floor(Date.now()/1000) + 600
+      Math.floor(Date.now() / 1000) + 600
     );
     await tx.wait();
-    alert("Add Liquidity sukses");
+
+    // Tampilkan harga
+    const price = parseFloat(bVal) / parseFloat(aVal);
+    alert(
+      `Add Liquidity sukses!\n1 ${selectedLiquidityIn.symbol} ≈ ${price.toFixed(
+        4
+      )} ${selectedLiquidityOut.symbol}`
+    );
     updateAllBalances();
   } catch (e) {
-    console.error("Liquidity error:", e);
+    console.error("Add LP error:", e);
     alert("Gagal tambah liquidity: " + e.message);
   }
 }
