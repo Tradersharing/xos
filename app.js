@@ -351,6 +351,8 @@ async function doSwap() {
 
 // === Add Liquidity ===
 async function addLiquidity() {
+  console.log("klik"); // ← Tambahan debug: pastikan tombol merespons klik
+
   const statusEl = document.getElementById("liquidityStatus");
   const loadingEl = document.getElementById("liquidityLoading");
 
