@@ -226,25 +226,39 @@ button:hover {
 }
  
 /* === INPUT VISIBLE OVERRIDE === */
+.token-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #222;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #333;
+}
+
+.token-select-btn {
+  flex-shrink: 0;
+  width: 120px;
+  background: transparent;
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
 .token-row input {
-  background-color: #333 !important;  /* kotak input gelap kontras */
-  color: #fff !important;             /* teks putih pasti kelihatan */
-  border: 1px solid #555 !important;  /* batas kotak jelas */
-  padding: 8px 12px !important;
-  border-radius: 8px !important;
-  outline: none !important;
-  font-size: 18px !important;
-  text-align: right !important;
-  width: auto !important;
-}
-
-/* placeholder juga jelas */
-.token-row input::placeholder {
-  color: #888 !important;
-  opacity: 1 !important;
-}
-
-/* Supaya kolom number di liquidity punya lebar yang pas */
-.token-row input[type="number"] {
-  width: calc(100% - 100px) !important;
+  flex-grow: 1;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background: #111;
+  color: #fff;
+  outline: none;
+  text-align: right;
 }
