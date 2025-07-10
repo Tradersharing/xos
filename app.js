@@ -350,61 +350,26 @@ async function doSwap() {
 }
 
 // === Add Liquidity ===
-
 async function addLiquidity() {
-  const statusEl = document.getElementById("liquidityStatus");
-  const loadingEl = document.getElementById("liquidityLoading");
+  const aVal = document.getElementById("liquidityAmountA").value;
+  const bVal = document.getElementById("liquidityAmountB").value;
+  if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal)) {
+    return alert("Isi jumlah A dan B dengan benar");
+  }
+
+  const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
+  const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
+
   try {
-    // Reset UI
-    statusEl.innerText = "";
-    loadingEl.style.display = "block";
+    console.log("⏳ Approve A");
+    const tokenA = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
+    await (await tokenA.approve(routerAddress, amtA)).wait();
 
-    if (!selectedLiquidityIn || !selectedLiquidityOut)
-      return alert("Pilih token liquidity A/B");
+    console.log("⏳ Approve B");
+    const tokenB = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
+    await (await tokenB.approve(routerAddress, amtB)).wait();
 
-    let aVal = document.getElementById("liquidityAmountA").value;
-    let bVal = document.getElementById("liquidityAmountB").value;
-
-    if ((!aVal || isNaN(aVal)) && (!bVal || isNaN(bVal)))
-      return alert("Isi setidaknya satu jumlah (A atau B)");
-
-    const symbolA = selectedLiquidityIn.symbol.toUpperCase();
-    const symbolB = selectedLiquidityOut.symbol.toUpperCase();
-
-    const isUsdtTswap = (symbolA === "USDT" && symbolB === "TSWAP") || (symbolA === "TSWAP" && symbolB === "USDT");
-
-    if (isUsdtTswap) {
-      if (symbolA === "USDT" && aVal && (!bVal || isNaN(bVal))) {
-        bVal = (parseFloat(aVal) / 0.001).toString();
-        document.getElementById("liquidityAmountB").value = bVal;
-      }
-      if (symbolB === "USDT" && bVal && (!aVal || isNaN(aVal))) {
-        aVal = (parseFloat(bVal) / 0.001).toString();
-        document.getElementById("liquidityAmountA").value = aVal;
-      }
-    }
-
-    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal))
-      return alert("Masukkan jumlah valid");
-
-    const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
-    const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
-
-    // === Approve Token A
-    if (selectedLiquidityIn.address !== "native") {
-      const tokenA = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
-      const txA = await tokenA.approve(routerAddress, amtA);
-      await txA.wait();
-    }
-
-    // === Approve Token B
-    if (selectedLiquidityOut.address !== "native") {
-      const tokenB = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
-      const txB = await tokenB.approve(routerAddress, amtB);
-      await txB.wait();
-    }
-
-    // === Add Liquidity
+    console.log("🚀 Add liquidity");
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
@@ -414,14 +379,10 @@ async function addLiquidity() {
       Math.floor(Date.now()/1000) + 600
     );
     await tx.wait();
-
-    statusEl.innerHTML = `<span style="color:green;">✅ Add Liquidity sukses</span>`;
-    updateAllBalances();
+    alert("✅ Add Liquidity berhasil");
   } catch (e) {
-    console.error("Liquidity error:", e);
-    statusEl.innerHTML = `<span style="color:red;">❌ Gagal tambah liquidity:<br>${e.message}</span>`;
-  } finally {
-    loadingEl.style.display = "none";
+    console.error(e);
+    alert("❌ Gagal add liquidity: " + e.message);
   }
 }
 
