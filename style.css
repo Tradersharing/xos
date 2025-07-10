@@ -236,12 +236,20 @@ button:hover {
   padding-left: 10px;
 }
 /* Pastikan input di liquidity section selalu terlihat dan bisa diklik */
+
 #liquidity .token-row input[type="number"] {
   display: inline-block !important;
-  width: calc(100% - 100px) !important; /* sesuaikan 100px dengan lebar tombol */
+  width: calc(100% - 100px) !important;
   padding: 8px;
   margin-left: 8px;
   font-size: 14px;
+
+  /* Tambahkan dua baris ini */
+  background-color: #222;    /* kotak input lebih gelap tapi kontras */
+  color: #fff;               /* teks agar putih terlihat */
+  
   opacity: 1 !important;
   visibility: visible !important;
 }
+
+  
