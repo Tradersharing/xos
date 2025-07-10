@@ -225,31 +225,26 @@ button:hover {
   100% { transform: rotate(360deg); }
 }
  
+/* === INPUT VISIBLE OVERRIDE === */
 .token-row input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 18px;
-  color: white;
-  width: 100%;
-  text-align: right;
-  padding-left: 10px;
+  background-color: #333 !important;  /* kotak input gelap kontras */
+  color: #fff !important;             /* teks putih pasti kelihatan */
+  border: 1px solid #555 !important;  /* batas kotak jelas */
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  outline: none !important;
+  font-size: 18px !important;
+  text-align: right !important;
+  width: auto !important;
 }
-/* Pastikan input di liquidity section selalu terlihat dan bisa diklik */
 
-#liquidity .token-row input[type="number"] {
-  display: inline-block !important;
-  width: calc(100% - 100px) !important;
-  padding: 8px;
-  margin-left: 8px;
-  font-size: 14px;
-
-  /* Tambahkan dua baris ini */
-  background-color: #222;    /* kotak input lebih gelap tapi kontras */
-  color: #fff;               /* teks agar putih terlihat */
-  
+/* placeholder juga jelas */
+.token-row input::placeholder {
+  color: #888 !important;
   opacity: 1 !important;
-  visibility: visible !important;
 }
 
-  
+/* Supaya kolom number di liquidity punya lebar yang pas */
+.token-row input[type="number"] {
+  width: calc(100% - 100px) !important;
+}
