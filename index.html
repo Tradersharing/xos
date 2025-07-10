@@ -56,36 +56,40 @@
   </div>
 
   <!-- === Liquidity Page === -->
-  <div id="liquidity" class="page">
-    <div class="swap-container">
-      <h2>💧 Add Liquidity</h2>
-      <p>Pilih 2 token lalu isi jumlah</p>
+  <!-- === Liquidity Page === -->
+<div id="liquidity" class="page">
+  <div class="swap-container">
+    <h2>💧 Add Liquidity</h2>
+    <p>Pilih 2 token lalu isi jumlah</p>
 
-      <div class="token-row">
-        <button class="token-select-btn" id="liquidityTokenInBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token A</span>
-        </button>
-        <input type="number" id="liquidityAmountA" placeholder="0.00">
-      </div>
-      <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
+    <div class="token-row">
+      <button class="token-select-btn" id="liquidityTokenInBtn">
+        <img src="assets/icons/blank.png" alt="">
+        <span>Select Token A</span>
+      </button>
+      <input type="number" id="liquidityAmountA" placeholder="0.00">
+    </div>
+    <div class="balance-text" id="liquidityTokenInBalance">Balance: --</div>
 
-      <div class="token-row">
-        <button class="token-select-btn" id="liquidityTokenOutBtn">
-          <img src="assets/icons/blank.png" alt="">
-          <span>Select Token B</span>
-        </button>
-        <input type="number" id="liquidityAmountB" placeholder="0.00">
-      </div>
-      <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
+    <div class="token-row">
+      <button class="token-select-btn" id="liquidityTokenOutBtn">
+        <img src="assets/icons/blank.png" alt="">
+        <span>Select Token B</span>
+      </button>
+      <input type="number" id="liquidityAmountB" placeholder="0.00">
+    </div>
+    <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
 
     <button id="btnAddLiquidity">➕ Add Liquidity</button>
 
+    <div id="liquidityStatus" style="margin-top: 10px; color: #fff;"></div>
+    <div id="liquidityLoading" style="display: none;">Loading...</div>
 
-      <input type="hidden" id="liquidityTokenIn">
-      <input type="hidden" id="liquidityTokenOut">
-    </div>
+    <input type="hidden" id="liquidityTokenIn">
+    <input type="hidden" id="liquidityTokenOut">
   </div>
+</div>
+
 
   <!-- === Staking Page === -->
   <div id="staking" class="page">
