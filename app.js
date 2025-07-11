@@ -1,8 +1,6 @@
-// === Constants & Setup ===
 let provider, signer, userAddress;
 let activeSelectionType = null;
 
-// Chain & Network Params
 const CHAIN_ID_HEX = "0x4F3";
 const XOS_PARAMS = {
   chainId: CHAIN_ID_HEX,
@@ -12,11 +10,9 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-// Contract Addresses
 const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151";
 const factoryAddress = "0x122D9a2B9D5117377F6b123a727D08A99D4d24b8";
 
-// Minimal ABIs
 const routerAbi = [
   "function getAmountsOut(uint,address[]) view returns(uint[])",
   "function swapExactTokensForTokens(uint,uint,address[],address,uint) external returns(uint[])",
@@ -30,7 +26,6 @@ const factoryAbi = [
 ];
 const lpAbi = ["function mint(address) returns(uint)"];
 
-// Token List
 const tokenList = [
   { address: "native", symbol: "XOS", decimals: 18 },
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS", decimals: 18 },
@@ -39,46 +34,40 @@ const tokenList = [
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap", decimals: 18 }
 ];
 
-// Contracts & Selectors
 let routerContract, factoryContract;
 let tokenSelector;
 
-// Selected tokens
 let selectedSwapIn = null;
 let selectedSwapOut = null;
 let selectedLiquidityIn = null;
 let selectedLiquidityOut = null;
 
-// === Initialization ===
 document.addEventListener("DOMContentLoaded", async () => {
-  if (!window.ethereum) {
-    alert("MetaMask atau wallet Web3 belum terpasang.");
-    return;
-  }
-
-  // Inisialisasi provider dan signer dulu, sebelum listener tombol connect dibuat
-  provider = new ethers.BrowserProvider(window.ethereum);
-  signer = await provider.getSigner();
-  routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
-  factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
-
-  // Enable dan pasang event listener tombol Connect Wallet
   const btnConnect = document.getElementById("btnConnect");
   if (btnConnect) {
-    btnConnect.disabled = false;
+    btnConnect.disabled = false;  // pastikan tombol connect aktif
     btnConnect.addEventListener("click", async () => {
       if (!window.ethereum) {
         alert("MetaMask atau wallet Web3 tidak ditemukan.");
         return;
       }
       try {
-        console.log("Tombol Connect diklik");
         await connectWallet();
       } catch (e) {
-        console.error("Error connectWallet:", e);
+        console.error(e);
       }
     });
   }
+
+  if (!window.ethereum) {
+    alert("MetaMask atau wallet Web3 belum terpasang.");
+    return;
+  }
+
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+  factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
 
   tokenSelector = document.getElementById("tokenSelector");
 
@@ -102,9 +91,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   window.ethereum.on("accountsChanged", handleAccountsChanged);
   window.ethereum.on("chainChanged", () => window.location.reload());
+
+  // Semua tombol selain btnConnect kita pastikan ENABLED di awal
+  ["stakingBtn","faucetBtn","lpBtn","btnSwap","btnAddLiquidity"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = false;
+  });
 });
 
-// === Functions ===
 async function ensureCorrectChain() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== CHAIN_ID_HEX) {
@@ -148,15 +142,28 @@ function handleAccountsChanged(accounts) {
 
 function updateWalletUI() {
   document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(userAddress)}`;
-  const btn = document.getElementById("btnConnect"); btn.innerText = "Connected"; btn.disabled = true;
-  ["stakingBtn","faucetBtn","lpBtn","btnSwap","btnAddLiquidity"].forEach(id => document.getElementById(id)?.disabled = false);
+  const btn = document.getElementById("btnConnect");
+  btn.innerText = "Connected";
+  // btn.disabled = true;  // jangan disable tombol connect
+  ["stakingBtn","faucetBtn","lpBtn","btnSwap","btnAddLiquidity"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = false;
+  });
 }
 
 function resetUI() {
   userAddress = null;
   document.getElementById("walletStatus").innerText = "Not connected";
-  const btn = document.getElementById("btnConnect"); btn.innerText = "Connect Wallet"; btn.disabled = false;
-  ["stakingBtn","faucetBtn","lpBtn","btnSwap","btnAddLiquidity"].forEach(id => document.getElementById(id)?.disabled = true);
+  const btn = document.getElementById("btnConnect");
+  btn.innerText = "Connect Wallet";
+  btn.disabled = false;
+  // jangan disable tombol lain di resetUI
+  /*
+  ["stakingBtn","faucetBtn","lpBtn","btnSwap","btnAddLiquidity"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = true;
+  });
+  */
 }
 
 function shortenAddress(addr) {
@@ -253,7 +260,6 @@ async function doSwap() {
   } catch (e) { console.error(e); alert("Swap gagal: " + e.message); }
 }
 
-// === Add Liquidity ===
 async function addLiquidity() {
   const statusEl = document.getElementById("liquidityStatus");
   const loadingEl = document.getElementById("liquidityLoading");
@@ -293,7 +299,6 @@ async function addLiquidity() {
   } finally { loadingEl.style.display = "none"; }
 }
 
-// === Balance Refresh ===
 async function updateAllBalances() {
   for (const tok of tokenList) {
     const bal = await getBalance(tok);
@@ -301,7 +306,6 @@ async function updateAllBalances() {
   }
 }
 
-// === Tab Switch ===
 function switchPage(btn) {
   document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
