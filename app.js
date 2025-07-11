@@ -118,25 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ===== Wallet & UI management =====
-async function tryAutoConnect() {
-  try {
-    const accounts = await provider.send("eth_accounts", []);
-    if (accounts.length > 0) {
-      userAddress = accounts[0];
-      signer = await provider.getSigner();
-      updateWalletUI();
-      enableAllWeb3Features();
-      updateAllBalances();
-    } else {
-      resetUI();
-      disableAllWeb3Features();
-    }
-  } catch (e) {
-    console.error("Auto connect error:", e);
-    resetUI();
-    disableAllWeb3Features();
-  }
-}
+
 
 async function connectWallet() {
   try {
