@@ -216,14 +216,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // === Disable semua fitur Web3 saat wallet tidak tersedia ===
 function disableAllWeb3Features() {
-  document.getElementById("btnConnect").disabled = true;
-  ["stakingBtn", "faucetBtn", "lpBtn"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.disabled = true;
-  });
+  // Tidak menonaktifkan tombol apa pun
   const status = document.getElementById("walletStatus");
-  if (status) status.innerText = "Wallet Web3 tidak ditemukan, silakan install MetaMask.";
+  if (status) {
+    status.innerText = "⚠️ Wallet Web3 tidak ditemukan. Fitur tetap aktif tapi mungkin tidak jalan.";
+  }
 }
+
 
 // === Chain & Connection ===
 async function ensureCorrectChain() {
