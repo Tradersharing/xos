@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnConnect.disabled = false;
     btnConnect.addEventListener("click", async () => {
       if (!window.ethereum) {
-        alert("MetaMask atau wallet Web3 tidak ditemukan. Silakan install terlebih dahulu.");
+        alert("MetaMask tidak ditemukan.");
         return;
       }
       try {
@@ -70,11 +70,59 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (!window.ethereum) {
-    alert("MetaMask atau wallet Web3 belum terpasang. Silakan install terlebih dahulu.");
-    disableAllWeb3Features();
-    return;
+    alert("MetaMask tidak terpasang.");
+    return; // ❗ Hanya ini, biarkan tombol connect tetap aktif
   }
 
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+  factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
+
+  tokenSelector = document.getElementById("tokenSelector");
+
+  await ensureCorrectChain();
+  await tryAutoConnect();
+
+  // Tambahkan listener UI
+  document.getElementById("tokenInBtn")?.addEventListener("click", () => openTokenSelector("swapIn"));
+  document.getElementById("tokenOutBtn")?.addEventListener("click", () => openTokenSelector("swapOut"));
+  document.getElementById("liquidityTokenInBtn")?.addEventListener("click", () => openTokenSelector("liqIn"));
+  document.getElementById("liquidityTokenOutBtn")?.addEventListener("click", () => openTokenSelector("liqOut"));
+  document.getElementById("amount")?.addEventListener("input", updateSwapPreview);
+  document.getElementById("btnSwap")?.addEventListener("click", doSwap);
+  document.getElementById("btnAddLiquidity")?.addEventListener("click", addLiquidity);
+
+  document.querySelectorAll(".tab-bar button").forEach(btn => {
+    btn.addEventListener("click", () => switchPage(btn));
+  });
+
+  window.addEventListener("click", e => {
+    if (e.target === tokenSelector) tokenSelector.classList.add("hidden");
+  });
+
+  populateTokenDropdowns();
+
+  // Wallet event listener
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accounts.length === 0) {
+        userAddress = null;
+        resetUI();
+      } else {
+        userAddress = accounts[0];
+        updateWalletUI();
+        updateAllBalances();
+      }
+    });
+    window.ethereum.on("chainChanged", () => {
+      window.location.reload();
+    });
+  }
+});
+
+
+  
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
   routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
