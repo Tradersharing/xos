@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (!window.ethereum) {
     alert("MetaMask atau wallet Web3 belum terpasang. Silakan install terlebih dahulu.");
-    disableAllWeb3Features();
+    
     return;
   }
 
