@@ -23,7 +23,7 @@ const routerAbi = [
   "function swapExactETHForTokens(uint,address[],address,uint) payable external returns(uint[])",
   "function swapExactTokensForETH(uint,uint,address[],address,uint) external returns(uint[])",
   "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)"
-  "function factory() view returns (address)" // ← INI WAJIB
+  "function factory() view returns (factoryAddress)" // ← INI WAJIB
 
 ];
 const factoryAbi = [
@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnConnect.disabled = false;
     btnConnect.addEventListener("click", async () => {
       if (!window.ethereum) {
-        alert("MetaMask tidak ditemukan.");
+        alert("MetaMask atau wallet Web3 tidak ditemukan. Silakan install terlebih dahulu.");
         return;
       }
       try {
@@ -70,9 +70,56 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (!window.ethereum) {
-    alert("MetaMask tidak terpasang.");
-    return; // ❗ Hanya ini, biarkan tombol connect tetap aktif
+    alert("MetaMask atau wallet Web3 belum terpasang. Silakan install terlebih dahulu.");
+    disableAllWeb3Features();
+    return;
   }
+
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+  factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
+
+  tokenSelector = document.getElementById("tokenSelector");
+
+  await ensureCorrectChain();
+  await tryAutoConnect();
+
+  document.getElementById("tokenInBtn")?.addEventListener("click", () => openTokenSelector("swapIn"));
+  document.getElementById("tokenOutBtn")?.addEventListener("click", () => openTokenSelector("swapOut"));
+  document.getElementById("liquidityTokenInBtn")?.addEventListener("click", () => openTokenSelector("liqIn"));
+  document.getElementById("liquidityTokenOutBtn")?.addEventListener("click", () => openTokenSelector("liqOut"));
+  document.getElementById("amount")?.addEventListener("input", updateSwapPreview);
+  document.getElementById("btnSwap")?.addEventListener("click", doSwap);
+  document.getElementById("btnAddLiquidity")?.addEventListener("click", addLiquidity);
+
+  document.querySelectorAll(".tab-bar button").forEach(btn => {
+    btn.addEventListener("click", () => switchPage(btn));
+  });
+
+  window.addEventListener("click", e => {
+    if (e.target === tokenSelector) tokenSelector.classList.add("hidden");
+  });
+
+  populateTokenDropdowns();
+
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accounts.length === 0) {
+        userAddress = null;
+        resetUI();
+      } else {
+        userAddress = accounts[0];
+        updateWalletUI();
+        updateAllBalances();
+      }
+    });
+    window.ethereum.on("chainChanged", () => {
+      window.location.reload();
+    });
+  }
+});
+
 
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
