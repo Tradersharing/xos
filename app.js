@@ -351,16 +351,14 @@ async function doSwap() {
 
 // === Add Liquidity ===
 async function addLiquidity() {
-  console.log("🔁 Klik tombol addLiquidity");
+  console.log("klik");
 
   const statusEl = document.getElementById("liquidityStatus");
   const loadingEl = document.getElementById("liquidityLoading");
+  loadingEl.style.display = "block";
+  statusEl.innerText = "";
 
   try {
-    statusEl.innerHTML = "";
-    loadingEl.innerHTML = "⏳ Menunggu konfirmasi...";
-    loadingEl.style.display = "block";
-
     if (!selectedLiquidityIn || !selectedLiquidityOut) {
       alert("Pilih token liquidity A/B");
       return;
@@ -398,45 +396,58 @@ async function addLiquidity() {
     const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
 
-    // Approve Token A
+    // === Cek dan buat pair jika belum ada ===
+    const factoryAddress = await routerContract.factory();
+    const factory = new ethers.Contract(factoryAddress, [
+      "function getPair(address,address) view returns (address)",
+      "function createPair(address,address) returns (address)"
+    ], signer);
+
+    const tokenA = selectedLiquidityIn.address;
+    const tokenB = selectedLiquidityOut.address;
+    const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase() ? [tokenA, tokenB] : [tokenB, tokenA];
+
+    const existingPair = await factory.getPair(token0, token1);
+    if (existingPair === ethers.ZeroAddress || existingPair === "0x0000000000000000000000000000000000000000") {
+      const txCreate = await factory.createPair(token0, token1);
+      await txCreate.wait();
+      console.log("✅ Pair baru dibuat:", token0, token1);
+    }
+
+    // === Approve Token A ===
     if (selectedLiquidityIn.address !== "native") {
-      const tokenA = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
-      loadingEl.innerHTML = "✅ Signature Token A";
-      const txA = await tokenA.approve(routerAddress, ethers.MaxUint256);
+      const tokenAContract = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
+      const txA = await tokenAContract.approve(routerAddress, amtA);
       await txA.wait();
     }
 
-    // Approve Token B
+    // === Approve Token B ===
     if (selectedLiquidityOut.address !== "native") {
-      const tokenB = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
-      loadingEl.innerHTML = "✅ Signature Token B";
-      const txB = await tokenB.approve(routerAddress, ethers.MaxUint256);
+      const tokenBContract = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
+      const txB = await tokenBContract.approve(routerAddress, amtB);
       await txB.wait();
     }
 
-    // Add Liquidity
-    loadingEl.innerHTML = "🚀 Mengirim TX addLiquidity...";
+    // === Add Liquidity ===
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
-      amtA,
-      amtB,
+      amtA, amtB,
       0, 0,
       userAddress,
       Math.floor(Date.now() / 1000) + 600
     );
     await tx.wait();
 
-    loadingEl.style.display = "none";
-    statusEl.innerHTML = `<span style="color:limegreen;">✅ Liquidity sukses!</span>`;
+    statusEl.innerHTML = `<span style="color:green;">✅ Add Liquidity sukses</span>`;
     updateAllBalances();
   } catch (e) {
     console.error("Liquidity error:", e);
-    loadingEl.style.display = "none";
     statusEl.innerHTML = `<span style="color:red;">❌ Gagal:<br>${e.message || e.toString()}</span>`;
+  } finally {
+    loadingEl.style.display = "none";
   }
 }
-
 
 
 // === Balance Refresh ===
