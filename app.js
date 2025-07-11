@@ -413,6 +413,15 @@ async function addLiquidity() {
     }
 
     // Add Liquidity
+    // 🔍 DEBUG info sebelum tx
+console.log("=== DEBUG Add Liquidity ===");
+console.log("Symbol A:", symbolA, "Address:", selectedLiquidityIn.address);
+console.log("Symbol B:", symbolB, "Address:", selectedLiquidityOut.address);
+console.log("Amount A (input):", aVal, "→ Parsed:", amtA.toString());
+console.log("Amount B (input):", bVal, "→ Parsed:", amtB.toString());
+console.log("Router Address:", routerAddress);
+console.log("User Address:", userAddress);
+
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
