@@ -33,8 +33,8 @@ const factoryAbi = [
 const tokenList = [
   { address: "native", symbol: "XOS", decimals: 18 },
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS", decimals: 18 },
-  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT", decimals: 6 },
-  { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC", decimals: 6 },
+  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT", decimals: 18 },
+  { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC", decimals: 18 },
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap", decimals: 18 }
 ];
 
@@ -49,6 +49,7 @@ let selectedLiquidityIn = null;
 let selectedLiquidityOut = null;
 
 // === Initialization ===
+
 document.addEventListener("DOMContentLoaded", async () => {
   const btnConnect = document.getElementById("btnConnect");
   if (btnConnect) {
@@ -73,14 +74,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
+
   routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
   factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
 
   tokenSelector = document.getElementById("tokenSelector");
 
   await ensureCorrectChain();
-  await tryAutoConnect();
+  await tryAutoConnect(); // <-- Ini yang otomatis aktifkan UI jika sudah login wallet
 
+  // Semua tombol & input aktif
   document.getElementById("tokenInBtn").addEventListener("click", () => openTokenSelector("swapIn"));
   document.getElementById("tokenOutBtn").addEventListener("click", () => openTokenSelector("swapOut"));
   document.getElementById("liquidityTokenInBtn").addEventListener("click", () => openTokenSelector("liqIn"));
@@ -96,9 +99,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   populateTokenDropdowns();
 
+  // Wallet events
   window.ethereum.on("accountsChanged", handleAccountsChanged);
   window.ethereum.on("chainChanged", () => window.location.reload());
 });
+
+
+
 
 // === Functions ===
 async function ensureCorrectChain() {
@@ -115,24 +122,24 @@ async function ensureCorrectChain() {
 }
 
 async function tryAutoConnect() {
-  const accounts = await provider.send("eth_accounts", []);
-  if (accounts.length > 0) {
-    userAddress = accounts[0];
-    signer = await provider.getSigner();
-    updateWalletUI();
-    updateAllBalances();
-  } else resetUI();
-}
-
-async function connectWallet() {
-  const accounts = await provider.send("eth_requestAccounts", []);
-  if (accounts.length > 0) {
-    userAddress = accounts[0];
-    signer = await provider.getSigner();
-    updateWalletUI();
-    updateAllBalances();
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if (accounts.length > 0) {
+      userAddress = accounts[0];
+      provider = new ethers.BrowserProvider(window.ethereum); // Tambahan supaya tetap aman
+      signer = await provider.getSigner();
+      updateWalletUI();
+      updateAllBalances();
+    } else {
+      resetUI();
+    }
+  } catch (err) {
+    console.error("Auto-connect failed:", err);
+    resetUI();
   }
 }
+
+
 
 function handleAccountsChanged(accounts) {
   if (accounts.length === 0) resetUI(); else {
