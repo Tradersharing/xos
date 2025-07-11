@@ -1,4 +1,4 @@
-ohonstants & Setup ===
+// === Constants & Setup ===
 let provider, signer, userAddress;
 let activeSelectionType = null;
 
