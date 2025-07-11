@@ -471,8 +471,11 @@ async function addLiquidity() {
     const symbolA = selectedLiquidityIn.symbol.toUpperCase();
     const symbolB = selectedLiquidityOut.symbol.toUpperCase();
 
-    const isUsdtTswap = (symbolA === "USDT" && symbolB === "TSWAP") || (symbolA === "TSWAP" && symbolB === "USDT");
+    const isUsdtTswap =
+      (symbolA === "USDT" && symbolB === "TSWAP") ||
+      (symbolA === "TSWAP" && symbolB === "USDT");
 
+    // Otomatis hitung jika salah satu kosong
     if (isUsdtTswap) {
       if (symbolA === "USDT" && aVal && (!bVal || isNaN(bVal))) {
         bVal = (parseFloat(aVal) / 0.001).toString();
@@ -493,63 +496,50 @@ async function addLiquidity() {
     const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
 
     // === Cek dan buat pair jika belum ada ===
-// Ambil token A dan B
-const tokenA = selectedLiquidityIn.address;
-const tokenB = selectedLiquidityOut.address;
-const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase()
-  ? [tokenA, tokenB]
-  : [tokenB, tokenA];
-
-// Buat factory contract instance
-const factory = new ethers.Contract(factoryAddress, [
-  "function getPair(address,address) view returns (address)",
-  "function createPair(address,address) returns (address)"
-], signer);
-
-// Cek apakah pair sudah ada
-          
-    const factoryAddress = await routerContract.factory();
-    const factory = new ethers.Contract(factoryAddress, [
-      "function getPair(address,address) view returns (address)",
-      "function createPair(address,address) returns (address)"
-    ], signer);
-
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
-    const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase() ? [tokenA, tokenB] : [tokenB, tokenA];
+    const [token0, token1] =
+      tokenA.toLowerCase() < tokenB.toLowerCase()
+        ? [tokenA, tokenB]
+        : [tokenB, tokenA];
 
-    // Ambil token A dan B
-const tokenA = selectedLiquidityIn.address;
-const tokenB = selectedLiquidityOut.address;
-const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase()
-  ? [tokenA, tokenB]
-  : [tokenB, tokenA];
+    const factory = new ethers.Contract(
+      factoryAddress,
+      [
+        "function getPair(address,address) view returns (address)",
+        "function createPair(address,address) returns (address)"
+      ],
+      signer
+    );
 
-// Buat factory contract instance
-const factory = new ethers.Contract(factoryAddress, [
-  "function getPair(address,address) view returns (address)",
-  "function createPair(address,address) returns (address)"
-], signer);
-
-// Cek apakah pair sudah ada
-const existingPair = await factory.getPair(token0, token1);
-if (existingPair === ethers.ZeroAddress || existingPair === "0x0000000000000000000000000000000000000000") {
-  const txCreate = await factory.createPair(token0, token1);
-  await txCreate.wait();
-  console.log("✅ Pair baru dibuat:", token0, token1);
-}
-
+    const existingPair = await factory.getPair(token0, token1);
+    if (
+      existingPair === ethers.ZeroAddress ||
+      existingPair === "0x0000000000000000000000000000000000000000"
+    ) {
+      const txCreate = await factory.createPair(token0, token1);
+      await txCreate.wait();
+      console.log("✅ Pair baru dibuat:", token0, token1);
+    }
 
     // === Approve Token A ===
     if (selectedLiquidityIn.address !== "native") {
-      const tokenAContract = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
+      const tokenAContract = new ethers.Contract(
+        selectedLiquidityIn.address,
+        ["function approve(address,uint256) returns(bool)"],
+        signer
+      );
       const txA = await tokenAContract.approve(routerAddress, amtA);
       await txA.wait();
     }
 
     // === Approve Token B ===
     if (selectedLiquidityOut.address !== "native") {
-      const tokenBContract = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
+      const tokenBContract = new ethers.Contract(
+        selectedLiquidityOut.address,
+        ["function approve(address,uint256) returns(bool)"],
+        signer
+      );
       const txB = await tokenBContract.approve(routerAddress, amtB);
       await txB.wait();
     }
@@ -558,8 +548,10 @@ if (existingPair === ethers.ZeroAddress || existingPair === "0x00000000000000000
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
-      amtA, amtB,
-      0, 0,
+      amtA,
+      amtB,
+      0,
+      0,
       userAddress,
       Math.floor(Date.now() / 1000) + 600
     );
@@ -575,7 +567,7 @@ if (existingPair === ethers.ZeroAddress || existingPair === "0x00000000000000000
   }
 }
 
-
+    
 // === Balance Refresh ===
 async function updateAllBalances() {
   for (let tok of tokenList) {
