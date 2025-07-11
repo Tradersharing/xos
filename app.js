@@ -23,7 +23,6 @@ const routerAbi = [
   "function swapExactETHForTokens(uint,address[],address,uint) payable external returns(uint[])",
   "function swapExactTokensForETH(uint,uint,address[],address,uint) external returns(uint[])",
   "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)"
-  "function factory() view returns (factoryAddress)" // ← INI WAJIB
 
 ];
 const factoryAbi = [
@@ -494,6 +493,21 @@ async function addLiquidity() {
     const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
 
     // === Cek dan buat pair jika belum ada ===
+// Ambil token A dan B
+const tokenA = selectedLiquidityIn.address;
+const tokenB = selectedLiquidityOut.address;
+const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase()
+  ? [tokenA, tokenB]
+  : [tokenB, tokenA];
+
+// Buat factory contract instance
+const factory = new ethers.Contract(factoryAddress, [
+  "function getPair(address,address) view returns (address)",
+  "function createPair(address,address) returns (address)"
+], signer);
+
+// Cek apakah pair sudah ada
+          
     const factoryAddress = await routerContract.factory();
     const factory = new ethers.Contract(factoryAddress, [
       "function getPair(address,address) view returns (address)",
@@ -504,12 +518,27 @@ async function addLiquidity() {
     const tokenB = selectedLiquidityOut.address;
     const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase() ? [tokenA, tokenB] : [tokenB, tokenA];
 
-    const existingPair = await factory.getPair(token0, token1);
-    if (existingPair === ethers.ZeroAddress || existingPair === "0x0000000000000000000000000000000000000000") {
-      const txCreate = await factory.createPair(token0, token1);
-      await txCreate.wait();
-      console.log("✅ Pair baru dibuat:", token0, token1);
-    }
+    // Ambil token A dan B
+const tokenA = selectedLiquidityIn.address;
+const tokenB = selectedLiquidityOut.address;
+const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase()
+  ? [tokenA, tokenB]
+  : [tokenB, tokenA];
+
+// Buat factory contract instance
+const factory = new ethers.Contract(factoryAddress, [
+  "function getPair(address,address) view returns (address)",
+  "function createPair(address,address) returns (address)"
+], signer);
+
+// Cek apakah pair sudah ada
+const existingPair = await factory.getPair(token0, token1);
+if (existingPair === ethers.ZeroAddress || existingPair === "0x0000000000000000000000000000000000000000") {
+  const txCreate = await factory.createPair(token0, token1);
+  await txCreate.wait();
+  console.log("✅ Pair baru dibuat:", token0, token1);
+}
+
 
     // === Approve Token A ===
     if (selectedLiquidityIn.address !== "native") {
