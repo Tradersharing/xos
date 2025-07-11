@@ -351,14 +351,14 @@ async function doSwap() {
 
 // === Add Liquidity ===
 async function addLiquidity() {
-  console.log("klik"); // ← Tambahan debug: pastikan tombol merespons klik
+  console.log("🔁 Klik tombol addLiquidity");
 
   const statusEl = document.getElementById("liquidityStatus");
   const loadingEl = document.getElementById("liquidityLoading");
 
   try {
-    // Reset UI
-    statusEl.innerText = "";
+    statusEl.innerHTML = "";
+    loadingEl.innerHTML = "⏳ Menunggu konfirmasi...";
     loadingEl.style.display = "block";
 
     if (!selectedLiquidityIn || !selectedLiquidityOut) {
@@ -401,46 +401,42 @@ async function addLiquidity() {
     // Approve Token A
     if (selectedLiquidityIn.address !== "native") {
       const tokenA = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
-      const txA = await tokenA.approve(routerAddress, amtA);
+      loadingEl.innerHTML = "✅ Signature Token A";
+      const txA = await tokenA.approve(routerAddress, ethers.MaxUint256);
       await txA.wait();
     }
 
     // Approve Token B
     if (selectedLiquidityOut.address !== "native") {
       const tokenB = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
-      const txB = await tokenB.approve(routerAddress, amtB);
+      loadingEl.innerHTML = "✅ Signature Token B";
+      const txB = await tokenB.approve(routerAddress, ethers.MaxUint256);
       await txB.wait();
     }
 
     // Add Liquidity
-    // 🔍 DEBUG info sebelum tx
-console.log("=== DEBUG Add Liquidity ===");
-console.log("Symbol A:", symbolA, "Address:", selectedLiquidityIn.address);
-console.log("Symbol B:", symbolB, "Address:", selectedLiquidityOut.address);
-console.log("Amount A (input):", aVal, "→ Parsed:", amtA.toString());
-console.log("Amount B (input):", bVal, "→ Parsed:", amtB.toString());
-console.log("Router Address:", routerAddress);
-console.log("User Address:", userAddress);
-
+    loadingEl.innerHTML = "🚀 Mengirim TX addLiquidity...";
     const tx = await routerContract.addLiquidity(
       selectedLiquidityIn.address,
       selectedLiquidityOut.address,
-      amtA, amtB,
+      amtA,
+      amtB,
       0, 0,
       userAddress,
       Math.floor(Date.now() / 1000) + 600
     );
     await tx.wait();
 
-    statusEl.innerHTML = `<span style="color:green;">✅ Add Liquidity sukses</span>`;
+    loadingEl.style.display = "none";
+    statusEl.innerHTML = `<span style="color:limegreen;">✅ Liquidity sukses!</span>`;
     updateAllBalances();
   } catch (e) {
     console.error("Liquidity error:", e);
-    statusEl.innerHTML = `<span style="color:red;">❌ Gagal tambah liquidity:<br>${e.message || e.toString()}</span>`;
-  } finally {
     loadingEl.style.display = "none";
+    statusEl.innerHTML = `<span style="color:red;">❌ Gagal:<br>${e.message || e.toString()}</span>`;
   }
 }
+
 
 
 // === Balance Refresh ===
