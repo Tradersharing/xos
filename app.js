@@ -123,21 +123,46 @@ async function ensureCorrectChain() {
 
 async function tryAutoConnect() {
   try {
+    console.log("🔍 Mencoba auto-connect...");
+
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
+
     if (accounts.length > 0) {
+      console.log("✅ Wallet sudah connect:", accounts[0]);
+
       userAddress = accounts[0];
-      provider = new ethers.BrowserProvider(window.ethereum); // Tambahan supaya tetap aman
+      provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
-      updateWalletUI();
+
+      updateWalletUI(); // ⬅️ seharusnya ini mengubah tombol & status
       updateAllBalances();
     } else {
+      console.log("❌ Belum connect");
       resetUI();
     }
   } catch (err) {
-    console.error("Auto-connect failed:", err);
+    console.error("❌ Error auto-connect:", err);
     resetUI();
   }
 }
+
+//====
+
+function updateWalletUI() {
+  console.log("🔄 updateWalletUI dipanggil untuk:", userAddress);
+
+  document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(userAddress)}`;
+  const btn = document.getElementById("btnConnect");
+  btn.innerText = "Connected";
+  btn.disabled = true;
+
+  ["stakingBtn", "faucetBtn", "lpBtn", "btnSwap", "btnAddLiquidity"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+}
+
+
 
 
 
