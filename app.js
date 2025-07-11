@@ -51,6 +51,18 @@ let selectedLiquidityOut = null;
 
 // === Initialization ===
 document.addEventListener("DOMContentLoaded", async () => {
+  if (!window.ethereum) {
+    alert("MetaMask atau wallet Web3 belum terpasang.");
+    return;
+  }
+
+  // Inisialisasi provider dan signer dulu, sebelum listener tombol connect dibuat
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+  factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
+
+  // Enable dan pasang event listener tombol Connect Wallet
   const btnConnect = document.getElementById("btnConnect");
   if (btnConnect) {
     btnConnect.disabled = false;
@@ -60,22 +72,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       try {
+        console.log("Tombol Connect diklik");
         await connectWallet();
       } catch (e) {
-        console.error(e);
+        console.error("Error connectWallet:", e);
       }
     });
   }
-
-  if (!window.ethereum) {
-    alert("MetaMask atau wallet Web3 belum terpasang.");
-    return;
-  }
-
-  provider = new ethers.BrowserProvider(window.ethereum);
-  signer = await provider.getSigner();
-  routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
-  factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
 
   tokenSelector = document.getElementById("tokenSelector");
 
@@ -100,6 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.ethereum.on("accountsChanged", handleAccountsChanged);
   window.ethereum.on("chainChanged", () => window.location.reload());
 });
+
 
 // === Functions ===
 async function ensureCorrectChain() {
