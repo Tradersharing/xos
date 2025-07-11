@@ -262,25 +262,21 @@ async function tryAutoConnect() {
 }
 
 async function connectWallet() {
+  console.log("connectWallet dipanggil");
   if (!window.ethereum) {
-    alert("MetaMask atau wallet Web3 tidak ditemukan. Silakan install terlebih dahulu.");
+    alert("MetaMask tidak ditemukan");
     return;
   }
+
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
-    if (accounts.length > 0) {
-      userAddress = accounts[0];
-      signer = await provider.getSigner();
-      updateWalletUI();
-      updateAllBalances();
-    } else {
-      resetUI();
-    }
+    console.log("Accounts:", accounts);
+    // ...
   } catch (e) {
     console.error("Connect wallet failed:", e);
-    resetUI();
   }
 }
+
 
 function updateWalletUI() {
   const status = document.getElementById("walletStatus");
