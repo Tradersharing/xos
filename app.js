@@ -23,6 +23,8 @@ const routerAbi = [
   "function swapExactETHForTokens(uint,address[],address,uint) payable external returns(uint[])",
   "function swapExactTokensForETH(uint,uint,address[],address,uint) external returns(uint[])",
   "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)"
+  "function factory() view returns (address)" // ← INI WAJIB
+
 ];
 const factoryAbi = [
   "function getPair(address,address) view returns(address)",
