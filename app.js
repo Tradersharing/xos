@@ -1,4 +1,4 @@
-// === Constants & Setup ===
+ohonstants & Setup ===
 let provider, signer, userAddress;
 let activeSelectionType = null;
 
@@ -103,7 +103,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.ethereum.on("accountsChanged", handleAccountsChanged);
   window.ethereum.on("chainChanged", () => window.location.reload());
 });
-
 
 // === Functions ===
 async function ensureCorrectChain() {
