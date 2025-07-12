@@ -289,6 +289,16 @@ async function doSwap() {
 
 // === Add Liquidity ===
 
+
+
+
+function debugLog(msg) {
+  const logDiv = document.getElementById("liquidityStatus");
+  logDiv.innerHTML += `<div style="color:gray; font-size:12px;">${msg}</div>`;
+}
+
+
+
 async function addLiquidity() {
   console.log("➕ [addLiquidity] Start");
 
@@ -343,23 +353,27 @@ async function addLiquidity() {
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
 
-    console.log("🔍 token0:", token0);
-    console.log("🔍 token1:", token1);
-
     const factory = new ethers.Contract(factoryAddress, [
       "function getPair(address,address) view returns(address)",
       "function createPair(address,address) returns(address)"
     ], signer);
 
     const existing = await factory.getPair(token0, token1);
-    console.log("📦 getPair result:", existing);
+
+    // 🔍 DEBUG LOG KE LAYAR
+    debugLog("🔥 TokenA: " + tokenA);
+    debugLog("🔥 TokenB: " + tokenB);
+    debugLog("🔥 existing pair: " + existing);
+    debugLog("🔥 token0 == token1? " + (token0.toLowerCase() === token1.toLowerCase()));
+    debugLog("🔥 token0 kosong? " + (token0 === ethers.ZeroAddress));
+    debugLog("🔥 token1 kosong? " + (token1 === ethers.ZeroAddress));
 
     if (existing === ethers.ZeroAddress) {
-      console.log("🚧 Pair belum ada, mencoba createPair...");
       try {
+        debugLog("⚒️ createPair() dijalankan...");
         const txCreate = await factory.createPair(token0, token1);
         const receipt = await txCreate.wait();
-        console.log("✅ Pair berhasil dibuat, tx hash:", receipt.hash);
+        debugLog("✅ Pair berhasil dibuat, tx hash: " + receipt.hash);
       } catch (errCreate) {
         console.error("❌ Gagal createPair:", errCreate);
         statusEl.innerHTML = `<span style="color:red;">❌ Gagal createPair:<br>${errCreate.message || errCreate.toString()}</span>`;
@@ -367,10 +381,10 @@ async function addLiquidity() {
         return;
       }
     } else {
-      console.log("✅ Pair sudah ada, lanjut addLiquidity");
+      debugLog("✅ Pair sudah ada, lanjut approve & addLiquidity...");
     }
 
-    // Approve
+    // Approve token
     if (tokenA !== "native") {
       const cA = new ethers.Contract(tokenA, ["function approve(address,uint256) returns(bool)"], signer);
       await (await cA.approve(routerAddress, amtA)).wait();
@@ -380,7 +394,8 @@ async function addLiquidity() {
       await (await cB.approve(routerAddress, amtB)).wait();
     }
 
-    console.log("🚀 Mengirim addLiquidity...");
+    // Add liquidity
+    debugLog("🚀 Kirim transaksi addLiquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
       amtA, amtB,
@@ -400,8 +415,6 @@ async function addLiquidity() {
     loadingEl.style.display = "none";
   }
 }
-
-
 
 // === Balance Refresh ===
 async function updateAllBalances() {
