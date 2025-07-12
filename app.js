@@ -288,58 +288,62 @@ async function doSwap() {
 }
 
 // === Add Liquidity ===
-
-
-// === Add Liquidity (Revisi pakai router) ===
+// === Add Liquidity (Final versi sinkron dengan selector) ===
 async function addLiquidity() {
-  const tokenA = document.getElementById("tokenIn").value;
-  const tokenB = document.getElementById("tokenOut").value;
-  if (!tokenA || !tokenB || tokenA === tokenB) return alert("⚠️ Pilih dua token berbeda.");
+  const tokenA = selectedLiquidityIn?.address;
+  const tokenB = selectedLiquidityOut?.address;
 
-  const amountADesired = prompt(`Jumlah token A (${getSymbol(tokenA)}):`);
-  const amountBDesired = prompt(`Jumlah token B (${getSymbol(tokenB)}):`);
-  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired))
+  if (!tokenA || !tokenB || tokenA === tokenB) {
+    return alert("⚠️ Pilih dua token berbeda.");
+  }
+
+  const symbolA = selectedLiquidityIn.symbol;
+  const symbolB = selectedLiquidityOut.symbol;
+
+  const amountADesired = prompt(`Jumlah token A (${symbolA}):`);
+  const amountBDesired = prompt(`Jumlah token B (${symbolB}):`);
+  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired)) {
     return alert("⚠️ Jumlah tidak valid.");
+  }
 
   try {
-    const router = new ethers.Contract(routerAddress, [
-      "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns (uint amountA, uint amountB, uint liquidity)",
-      "function addLiquidityETH(address,uint,uint,uint,address,uint) payable returns (uint amountToken, uint amountETH, uint liquidity)"
-    ], signer);
+    const amtA = ethers.parseUnits(amountADesired, selectedLiquidityIn.decimals);
+    const amtB = ethers.parseUnits(amountBDesired, selectedLiquidityOut.decimals);
 
-    const [decA, decB] = await Promise.all([
-      new ethers.Contract(tokenA, ["function decimals() view returns (uint8)"], provider).decimals(),
-      new ethers.Contract(tokenB, ["function decimals() view returns (uint8)"], provider).decimals()
-    ]);
-
-    const amtA = ethers.parseUnits(amountADesired, decA);
-    const amtB = ethers.parseUnits(amountBDesired, decB);
-
+    // Approve masing-masing token ke router
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     await (await approveA.approve(routerAddress, amtA)).wait();
     await (await approveB.approve(routerAddress, amtB)).wait();
 
-    const deadline = Math.floor(Date.now() / 1000) + 600; // 10 menit
+    // Hitung slippage
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
+    const deadline = Math.floor(Date.now() / 1000) + 600;
 
-    const tx = await router.addLiquidity(
+    // Kirim transaksi addLiquidity
+    const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
       amtA, amtB,
       minA, minB,
-      await signer.getAddress(),
+      userAddress,
       deadline
     );
+
     await tx.wait();
     alert("✅ Berhasil tambah liquidity.");
+    updateAllBalances();
+
   } catch (e) {
     console.error(e);
-    alert("❌ Gagal tambah liquidity: " + e.message);
+    alert("❌ Gagal tambah liquidity: " + (e?.message || e));
   }
 }
+
+
+// === Add Liquidity (Revisi pakai router) ===
 
 
 
