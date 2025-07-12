@@ -205,7 +205,16 @@ async function updateSwapPreview() {
     document.getElementById("amountOut").value = ethers.formatUnits(amts[1], selectedSwapOut.decimals);
   } catch { document.getElementById("amountOut").value = ""; }
 }
+// =========== SLIPAGE=====
+// Ambil slippage dari input
+function getSlippage() {
+  const s = parseFloat(document.getElementById("slippage").value);
+  return isNaN(s) ? 1 : s;
+}
 
+
+
+//===SWAP=====
 async function doSwap() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedSwapIn || !selectedSwapOut) return alert("❗ Pilih token swap in/out");
