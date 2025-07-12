@@ -41,36 +41,23 @@ const tokenList = [
 // Contracts & Selectors
 let routerContract, factoryContract;
 let tokenSelector;
-
-// Selected tokens
 let selectedSwapIn = null;
 let selectedSwapOut = null;
 let selectedLiquidityIn = null;
 let selectedLiquidityOut = null;
 
-// === Initialization ===
-
+// Initialization
 document.addEventListener("DOMContentLoaded", async () => {
   const btnConnect = document.getElementById("btnConnect");
   if (btnConnect) {
     btnConnect.disabled = false;
     btnConnect.addEventListener("click", async () => {
-      if (!window.ethereum) {
-        alert("MetaMask atau wallet Web3 tidak ditemukan.");
-        return;
-      }
-      try {
-        await connectWallet();
-      } catch (e) {
-        console.error(e);
-      }
+      if (!window.ethereum) return alert("MetaMask tidak ditemukan.");
+      try { await connectWallet(); } catch (e) { console.error(e); }
     });
   }
 
-  if (!window.ethereum) {
-    alert("MetaMask atau wallet Web3 belum terpasang.");
-    return;
-  }
+  if (!window.ethereum) return alert("MetaMask belum terpasang.");
 
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
@@ -81,9 +68,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   tokenSelector = document.getElementById("tokenSelector");
 
   await ensureCorrectChain();
-  await tryAutoConnect(); // <-- Ini yang otomatis aktifkan UI jika sudah login wallet
+  await tryAutoConnect();
 
-  // Semua tombol & input aktif
   document.getElementById("tokenInBtn").addEventListener("click", () => openTokenSelector("swapIn"));
   document.getElementById("tokenOutBtn").addEventListener("click", () => openTokenSelector("swapOut"));
   document.getElementById("liquidityTokenInBtn").addEventListener("click", () => openTokenSelector("liqIn"));
@@ -99,15 +85,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   populateTokenDropdowns();
 
-  // Wallet events
   window.ethereum.on("accountsChanged", handleAccountsChanged);
   window.ethereum.on("chainChanged", () => window.location.reload());
 });
 
+// Core Functions
+async function connectWallet() {
+  const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+  if (accounts.length === 0) throw new Error("Tidak ada akun ditemukan.");
+  userAddress = accounts[0];
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  updateWalletUI();
+  updateAllBalances();
+}
 
-
-
-// === Functions ===
 async function ensureCorrectChain() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId !== CHAIN_ID_HEX) {
@@ -122,65 +114,23 @@ async function ensureCorrectChain() {
 }
 
 async function tryAutoConnect() {
-  try {
-    console.log("🔍 Mencoba auto-connect...");
-
-    const accounts = await window.ethereum.request({ method: "eth_accounts" });
-
-    if (accounts.length > 0) {
-      console.log("✅ Wallet sudah connect:", accounts[0]);
-
-      userAddress = accounts[0];
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-
-      updateWalletUI(); // ⬅️ seharusnya ini mengubah tombol & status
-      updateAllBalances();
-    } else {
-      console.log("❌ Belum connect");
-      resetUI();
-    }
-  } catch (err) {
-    console.error("❌ Error auto-connect:", err);
+  const accounts = await window.ethereum.request({ method: "eth_accounts" });
+  if (accounts.length > 0) {
+    userAddress = accounts[0];
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    updateWalletUI();
+    updateAllBalances();
+  } else {
     resetUI();
   }
 }
 
-//====
-
-function updateWalletUI() {
-  console.log("🔄 updateWalletUI dipanggil untuk:", userAddress);
-
-  document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(userAddress)}`;
-  const btn = document.getElementById("btnConnect");
-  btn.innerText = "Connected";
-  btn.disabled = true;
-
-  ["stakingBtn", "faucetBtn", "lpBtn", "btnSwap", "btnAddLiquidity"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.disabled = false;
-  });
-}
-
-
-
-
-
-function handleAccountsChanged(accounts) {
-  if (accounts.length === 0) resetUI(); else {
-    userAddress = accounts[0];
-    updateWalletUI();
-    updateAllBalances();
-  }
-}
-
 function updateWalletUI() {
   document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(userAddress)}`;
   const btn = document.getElementById("btnConnect");
   btn.innerText = "Connected";
   btn.disabled = true;
-
-  // Tombol lain TIDAK di-disable atau enabled, supaya selalu aktif
 }
 
 function resetUI() {
@@ -189,8 +139,15 @@ function resetUI() {
   const btn = document.getElementById("btnConnect");
   btn.innerText = "Connect Wallet";
   btn.disabled = false;
+}
 
-  // Tombol lain TIDAK di-disable, supaya selalu aktif
+function handleAccountsChanged(accounts) {
+  if (accounts.length === 0) resetUI();
+  else {
+    userAddress = accounts[0];
+    updateWalletUI();
+    updateAllBalances();
+  }
 }
 
 function shortenAddress(addr) {
@@ -287,8 +244,6 @@ async function doSwap() {
   } catch (e) { console.error(e); alert("Swap gagal: " + e.message); }
 }
 
-// === Add Liquidity ===
-// === Add Liquidity (Final versi sinkron dengan selector) ===
 async function addLiquidity() {
   const tokenA = selectedLiquidityIn?.address;
   const tokenB = selectedLiquidityOut?.address;
@@ -300,34 +255,27 @@ async function addLiquidity() {
   const symbolA = selectedLiquidityIn.symbol;
   const symbolB = selectedLiquidityOut.symbol;
 
-  const amountADesired = prompt(`Jumlah token A (${getSymbol(tokenA)}):`);
-const amountBDesired = prompt(`Jumlah token B (${getSymbol(tokenB)}):`);
+  const amountADesired = prompt(`Jumlah token A (${symbolA}):`);
+  const amountBDesired = prompt(`Jumlah token B (${symbolB}):`);
 
-if (
-  !amountADesired || isNaN(parseFloat(amountADesired)) ||
-  !amountBDesired || isNaN(parseFloat(amountBDesired))
-) return alert("⚠️ Jumlah tidak valid.");
-
-  }
+  if (!amountADesired || isNaN(parseFloat(amountADesired)) ||
+      !amountBDesired || isNaN(parseFloat(amountBDesired))) return alert("⚠️ Jumlah tidak valid.");
 
   try {
     const amtA = ethers.parseUnits(amountADesired, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(amountBDesired, selectedLiquidityOut.decimals);
 
-    // Approve masing-masing token ke router
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     await (await approveA.approve(routerAddress, amtA)).wait();
     await (await approveB.approve(routerAddress, amtB)).wait();
 
-    // Hitung slippage
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
-    // Kirim transaksi addLiquidity
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
       amtA, amtB,
@@ -339,30 +287,19 @@ if (
     await tx.wait();
     alert("✅ Berhasil tambah liquidity.");
     updateAllBalances();
-
   } catch (e) {
     console.error(e);
     alert("❌ Gagal tambah liquidity: " + (e?.message || e));
   }
 }
 
-
-// === Add Liquidity (Revisi pakai router) ===
-
-
-
-// === Balance Refresh ===
-async function updateAllBalances() {
-  for (const tok of tokenList) {
-    const bal = await getBalance(tok);
-    document.getElementById(`bal-${tok.symbol}`).innerText = `Balance: ${bal}`;
-  }
-}
-
-// === Tab Switch ===
 function switchPage(btn) {
   document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   btn.classList.add("active");
   document.getElementById(btn.dataset.target).classList.add("active");
+}
+
+function getSlippage() {
+  return 1; // default slippage 1%
 }
