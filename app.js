@@ -1,8 +1,7 @@
-// Constants & Setup
+// === Constants & Setup ===
 let provider, signer, userAddress;
 let activeSelectionType = null;
 
-// Chain & Network Params
 const CHAIN_ID_HEX = "0x4F3";
 const XOS_PARAMS = {
   chainId: CHAIN_ID_HEX,
@@ -12,16 +11,12 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-// Contract Addresses
 const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151";
 const factoryAddress = "0x122D9a2B9D5117377F6b123a727D08A99D4d24b8";
 
-// Minimal ABIs
 const routerAbi = [
   "function getAmountsOut(uint,address[]) view returns(uint[])",
   "function swapExactTokensForTokens(uint,uint,address[],address,uint) external returns(uint[])",
-  "function swapExactETHForTokens(uint,address[],address,uint) payable external returns(uint[])",
-  "function swapExactTokensForETH(uint,uint,address[],address,uint) external returns(uint[])",
   "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)"
 ];
 const factoryAbi = [
@@ -29,7 +24,6 @@ const factoryAbi = [
   "function createPair(address,address) returns(address)"
 ];
 
-// Token List
 const tokenList = [
   { address: "native", symbol: "XOS", decimals: 18 },
   { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS", decimals: 18 },
@@ -38,38 +32,28 @@ const tokenList = [
   { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap", decimals: 18 }
 ];
 
-// Contracts & Selectors
 let routerContract, factoryContract;
 let tokenSelector;
-let selectedSwapIn = null;
-let selectedSwapOut = null;
-let selectedLiquidityIn = null;
-let selectedLiquidityOut = null;
+let selectedSwapIn = null, selectedSwapOut = null;
+let selectedLiquidityIn = null, selectedLiquidityOut = null;
 
-// Initialization
+// === Initialization ===
 document.addEventListener("DOMContentLoaded", async () => {
-  const btnConnect = document.getElementById("btnConnect");
-  if (btnConnect) {
-    btnConnect.disabled = false;
-    btnConnect.addEventListener("click", async () => {
-      if (!window.ethereum) return alert("MetaMask tidak ditemukan.");
-      try { await connectWallet(); } catch (e) { console.error(e); }
-    });
+  if (!window.ethereum) {
+    alert("MetaMask belum tersedia.");
+    return;
   }
-
-  if (!window.ethereum) return alert("MetaMask belum terpasang.");
 
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
-
   routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
   factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
-
   tokenSelector = document.getElementById("tokenSelector");
 
   await ensureCorrectChain();
   await tryAutoConnect();
 
+  document.getElementById("btnConnect").addEventListener("click", connectWallet);
   document.getElementById("tokenInBtn").addEventListener("click", () => openTokenSelector("swapIn"));
   document.getElementById("tokenOutBtn").addEventListener("click", () => openTokenSelector("swapOut"));
   document.getElementById("liquidityTokenInBtn").addEventListener("click", () => openTokenSelector("liqIn"));
@@ -84,20 +68,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   populateTokenDropdowns();
-
   window.ethereum.on("accountsChanged", handleAccountsChanged);
   window.ethereum.on("chainChanged", () => window.location.reload());
 });
 
-// Core Functions
 async function connectWallet() {
-  const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-  if (accounts.length === 0) throw new Error("Tidak ada akun ditemukan.");
-  userAddress = accounts[0];
-  provider = new ethers.BrowserProvider(window.ethereum);
-  signer = await provider.getSigner();
-  updateWalletUI();
-  updateAllBalances();
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  await tryAutoConnect();
+}
+
+async function tryAutoConnect() {
+  const accounts = await window.ethereum.request({ method: "eth_accounts" });
+  if (accounts.length > 0) {
+    userAddress = accounts[0];
+    updateWalletUI();
+    updateAllBalances();
+  } else {
+    resetUI();
+  }
 }
 
 async function ensureCorrectChain() {
@@ -113,41 +101,15 @@ async function ensureCorrectChain() {
   }
 }
 
-async function tryAutoConnect() {
-  const accounts = await window.ethereum.request({ method: "eth_accounts" });
-  if (accounts.length > 0) {
-    userAddress = accounts[0];
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    updateWalletUI();
-    updateAllBalances();
-  } else {
-    resetUI();
-  }
-}
-
 function updateWalletUI() {
   document.getElementById("walletStatus").innerText = `Connected: ${shortenAddress(userAddress)}`;
-  const btn = document.getElementById("btnConnect");
-  btn.innerText = "Connected";
-  btn.disabled = true;
+  document.getElementById("btnConnect").innerText = "Connected";
 }
 
 function resetUI() {
   userAddress = null;
   document.getElementById("walletStatus").innerText = "Not connected";
-  const btn = document.getElementById("btnConnect");
-  btn.innerText = "Connect Wallet";
-  btn.disabled = false;
-}
-
-function handleAccountsChanged(accounts) {
-  if (accounts.length === 0) resetUI();
-  else {
-    userAddress = accounts[0];
-    updateWalletUI();
-    updateAllBalances();
-  }
+  document.getElementById("btnConnect").innerText = "Connect Wallet";
 }
 
 function shortenAddress(addr) {
@@ -221,7 +183,8 @@ async function getBalance(tok) {
 async function updateSwapPreview() {
   const inEl = document.getElementById("amount"), outEl = document.getElementById("amountOut");
   if (!selectedSwapIn || !selectedSwapOut) return;
-  const val = inEl.value; if (!val || isNaN(val)) return outEl.value = "";
+  const val = inEl.value;
+  if (!val || isNaN(val)) return outEl.value = "";
   const wei = ethers.parseUnits(val, selectedSwapIn.decimals);
   try {
     const amts = await routerContract.getAmountsOut(wei, [selectedSwapIn.address, selectedSwapOut.address]);
@@ -231,35 +194,46 @@ async function updateSwapPreview() {
 
 async function doSwap() {
   try {
-    if (!selectedSwapIn || !selectedSwapOut) return alert("Pilih token swap in/out");
+    if (!userAddress) return alert("❌ Connect wallet dulu.");
+    if (!selectedSwapIn || !selectedSwapOut) return alert("❗ Pilih token swap in/out");
     const val = document.getElementById("amount").value;
-    if (!val || isNaN(val)) return alert("Isi jumlah yang valid");
+    if (!val || isNaN(val)) return alert("⚠️ Jumlah tidak valid");
+
     const wei = ethers.parseUnits(val, selectedSwapIn.decimals);
-    if (parseFloat(val) > parseFloat(await getBalance(selectedSwapIn))) return alert("Jumlah melebihi saldo");
+    if (parseFloat(val) > parseFloat(await getBalance(selectedSwapIn))) return alert("❌ Saldo tidak cukup");
+
     if (selectedSwapIn.address !== "native") {
       await new ethers.Contract(selectedSwapIn.address, ["function approve(address,uint256) returns(bool)"], signer).approve(routerAddress, wei);
     }
-    const tx = await routerContract.swapExactTokensForTokens(wei, 0, [selectedSwapIn.address, selectedSwapOut.address], userAddress, Math.floor(Date.now()/1000)+600);
-    await tx.wait(); alert("Swap sukses"); updateAllBalances();
-  } catch (e) { console.error(e); alert("Swap gagal: " + e.message); }
+
+    const tx = await routerContract.swapExactTokensForTokens(
+      wei, 0, [selectedSwapIn.address, selectedSwapOut.address],
+      userAddress, Math.floor(Date.now() / 1000) + 600
+    );
+    await tx.wait();
+    alert("✅ Swap sukses");
+    updateAllBalances();
+  } catch (e) {
+    console.error(e);
+    alert("❌ Swap gagal: " + e.message);
+  }
+}
+
+function getSlippage() {
+  return 5; // default 5%
 }
 
 async function addLiquidity() {
+  if (!userAddress) return alert("Connect wallet dulu.");
   const tokenA = selectedLiquidityIn?.address;
   const tokenB = selectedLiquidityOut?.address;
+  if (!tokenA || !tokenB || tokenA === tokenB) return alert("⚠️ Pilih dua token berbeda.");
 
-  if (!tokenA || !tokenB || tokenA === tokenB) {
-    return alert("⚠️ Pilih dua token berbeda.");
+  const amountADesired = prompt("Jumlah Token A:");
+  const amountBDesired = prompt("Jumlah Token B:");
+  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired)) {
+    return alert("⚠️ Jumlah tidak valid.");
   }
-
-  const symbolA = selectedLiquidityIn.symbol;
-  const symbolB = selectedLiquidityOut.symbol;
-
-  const amountADesired = prompt(`Jumlah token A (${symbolA}):`);
-  const amountBDesired = prompt(`Jumlah token B (${symbolB}):`);
-
-  if (!amountADesired || isNaN(parseFloat(amountADesired)) ||
-      !amountBDesired || isNaN(parseFloat(amountBDesired))) return alert("⚠️ Jumlah tidak valid.");
 
   try {
     const amtA = ethers.parseUnits(amountADesired, selectedLiquidityIn.decimals);
@@ -289,7 +263,14 @@ async function addLiquidity() {
     updateAllBalances();
   } catch (e) {
     console.error(e);
-    alert("❌ Gagal tambah liquidity: " + (e?.message || e));
+    alert("❌ Gagal tambah liquidity: " + e.message);
+  }
+}
+
+async function updateAllBalances() {
+  for (const tok of tokenList) {
+    const bal = await getBalance(tok);
+    document.getElementById(`bal-${tok.symbol}`).innerText = `Balance: ${bal}`;
   }
 }
 
@@ -298,8 +279,4 @@ function switchPage(btn) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   btn.classList.add("active");
   document.getElementById(btn.dataset.target).classList.add("active");
-}
-
-function getSlippage() {
-  return 1; // default slippage 1%
 }
