@@ -288,6 +288,7 @@ async function doSwap() {
 }
 
 // === Add Liquidity ===
+
 async function addLiquidity() {
   console.log("➕ AddLiquidity clicked");
 
@@ -310,17 +311,17 @@ async function addLiquidity() {
     // 2. Hitung otomatis untuk USDT/TSWAP jika satu sisi kosong
     const symA = selectedLiquidityIn.symbol.toUpperCase();
     const symB = selectedLiquidityOut.symbol.toUpperCase();
-    if ((symA==="USDT"&&symB==="TSWAP")||(symA==="TSWAP"&&symB==="USDT")) {
-      if (symA==="USDT" && aVal && (!bVal||isNaN(bVal))) {
-        bVal = (parseFloat(aVal)/0.001).toString();
+    if ((symA === "USDT" && symB === "TSWAP") || (symA === "TSWAP" && symB === "USDT")) {
+      if (symA === "USDT" && aVal && (!bVal || isNaN(bVal))) {
+        bVal = (parseFloat(aVal) / 0.001).toString();
         document.getElementById("liquidityAmountB").value = bVal;
       }
-      if (symB==="USDT" && bVal && (!aVal||isNaN(aVal))) {
-        aVal = (parseFloat(bVal)/0.001).toString();
+      if (symB === "USDT" && bVal && (!aVal || isNaN(aVal))) {
+        aVal = (parseFloat(bVal) / 0.001).toString();
         document.getElementById("liquidityAmountA").value = aVal;
       }
     }
-    if (!aVal||!bVal||isNaN(aVal)||isNaN(bVal)) {
+    if (!aVal || !bVal || isNaN(aVal) || isNaN(bVal)) {
       return alert("Masukkan jumlah valid");
     }
 
@@ -328,16 +329,25 @@ async function addLiquidity() {
     const amtA = ethers.parseUnits(aVal, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(bVal, selectedLiquidityOut.decimals);
 
-    // 4. Cek / buat pair di factory (hardcode factoryAddress)
-    const tokenA = selectedLiquidityIn.address;
-    const tokenB = selectedLiquidityOut.address;
-    const [token0, token1] = tokenA.toLowerCase()<tokenB.toLowerCase()
+    // 4. Cek / buat pair di factory
+    const wXOS = "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB"; // ganti native
+    const tokenA = selectedLiquidityIn.address === "native" ? wXOS : selectedLiquidityIn.address;
+    const tokenB = selectedLiquidityOut.address === "native" ? wXOS : selectedLiquidityOut.address;
+
+    if (tokenA.toLowerCase() === tokenB.toLowerCase()) {
+      alert("Token A dan B tidak boleh sama.");
+      return;
+    }
+
+    const [token0, token1] = tokenA.toLowerCase() < tokenB.toLowerCase()
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
+
     const factory = new ethers.Contract(factoryAddress, [
       "function getPair(address,address) view returns(address)",
       "function createPair(address,address) returns(address)"
     ], signer);
+
     const existing = await factory.getPair(token0, token1);
     if (existing === ethers.ZeroAddress) {
       const txCreate = await factory.createPair(token0, token1);
@@ -362,7 +372,7 @@ async function addLiquidity() {
       amtA, amtB,
       0, 0,
       userAddress,
-      Math.floor(Date.now()/1000)+600
+      Math.floor(Date.now() / 1000) + 600
     )).wait();
 
     statusEl.innerHTML = `<span style="color:limegreen;">✅ Add Liquidity sukses</span>`;
@@ -370,7 +380,7 @@ async function addLiquidity() {
 
   } catch (err) {
     console.error("Liquidity error:", err);
-    statusEl.innerHTML = `<span style="color:red;">❌ Gagal:<br>${err.message||err.toString()}</span>`;
+    statusEl.innerHTML = `<span style="color:red;">❌ Gagal:<br>${err.message || err.toString()}</span>`;
   } finally {
     loadingEl.style.display = "none";
   }
