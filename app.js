@@ -300,10 +300,14 @@ async function addLiquidity() {
   const symbolA = selectedLiquidityIn.symbol;
   const symbolB = selectedLiquidityOut.symbol;
 
-  const amountADesired = prompt(`Jumlah token A (${symbolA}):`);
-  const amountBDesired = prompt(`Jumlah token B (${symbolB}):`);
-  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired)) {
-    return alert("⚠️ Jumlah tidak valid.");
+  const amountADesired = prompt(`Jumlah token A (${getSymbol(tokenA)}):`);
+const amountBDesired = prompt(`Jumlah token B (${getSymbol(tokenB)}):`);
+
+if (
+  !amountADesired || isNaN(parseFloat(amountADesired)) ||
+  !amountBDesired || isNaN(parseFloat(amountBDesired))
+) return alert("⚠️ Jumlah tidak valid.");
+
   }
 
   try {
