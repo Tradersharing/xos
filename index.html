@@ -81,6 +81,16 @@
       <input type="number" id="liquidityAmountB" placeholder="0.00">
     </div>
     <div class="balance-text" id="liquidityTokenOutBalance">Balance: --</div>
+<!-- === Price Estimation Box === -->
+<div id="priceEstimateBox" style="display: none; margin-top: 12px;">
+  <div id="priceEstimateLoading" style="text-align:center;">
+    <img src="assets/loading.gif" alt="Loading..." style="width:32px;">
+    <div style="font-size: 13px; color: #0bf;">Menghitung estimasi harga...</div>
+  </div>
+  <div id="priceEstimateResult" style="display: none; padding: 10px; background: #111; border: 1px solid #0bf; border-radius: 8px;">
+    <div style="font-size: 13px; color: white;" id="priceInfoText">Estimasi harga: ...</div>
+  </div>
+</div>
 
     <button id="btnAddLiquidity">➕ Add Liquidity</button>
     
