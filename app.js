@@ -285,8 +285,8 @@ async function addLiquidity() {
     console.log("🛠 Factory:", factoryAddress);
 
     // === [2] Cek Decimals dari Kontrak ===
-    const decA = await getDecimals(tokenA);
-    const decB = await getDecimals(tokenB);
+    const decA = 18 (tokenA);
+    const decB = 18 (tokenB);
     console.log("DEBUG getDecimals:", decA, decB, typeof decA, typeof decB);
 
     if (typeof decA !== 'number' || typeof decB !== 'number') throw new Error("❌ Gagal ambil desimal dari token.");
