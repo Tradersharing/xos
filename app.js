@@ -276,76 +276,78 @@ async function addLiquidity() {
   showTxStatusModal("loading", "⏳ Menyiapkan transaksi...");
 
   try {
-    const tokenA = selectedLiquidityIn.address;
-    const tokenB = selectedLiquidityOut.address;
+    // Ambil dan sort token
+    let tokenA = selectedLiquidityIn.address;
+    let tokenB = selectedLiquidityOut.address;
 
-    // === [1] Cek Router & Factory ===
-    if (!routerContract || !factoryContract) throw new Error("Kontrak Router/Factory belum terhubung.");
-    console.log("🛠 Router:", routerAddress);
-    console.log("🛠 Factory:", factoryAddress);
+    console.log("🔢 [BEFORE SORT] tokenA:", tokenA);
+    console.log("🔢 [BEFORE SORT] tokenB:", tokenB);
 
-    // === [2] Cek Decimals dari Kontrak ===
-    // === [2] Cek Decimals dari Kontrak ===
-const decA = 18;
-const decB = 18;
+    [tokenA, tokenB] = sortTokens(tokenA, tokenB);
 
-console.log("DEBUG getDecimals:", decA, decB, typeof decA, typeof decB);
+    console.log("🔀 [AFTER SORT] tokenA:", tokenA);
+    console.log("🔀 [AFTER SORT] tokenB:", tokenB);
 
-if (typeof decA !== 'number' || typeof decB !== 'number') throw new Error("❌ Gagal ambil desimal dari token.");
+    // === Hardcoded decimals sementara ===
+    const decA = 18;
+    const decB = 18;
+    console.log("🔢 Desimal A:", decA, "Desimal B:", decB);
 
-console.log("🔢 Desimal Token A:", decA);
-console.log("🔢 Desimal Token B:", decB);
-
-    // === [3] Parse Amount ke BigNumber ===
+    // === Parse Amount ke BigInt ===
     const amtA = ethers.parseUnits(amountADesired, decA);
     const amtB = ethers.parseUnits(amountBDesired, decB);
+    console.log("💰 amtA:", amtA.toString(), "amtB:", amtB.toString());
 
-    if (!amtA || !amtB) throw new Error("❌ Gagal parsing amount ke BigNumber.");
-
-    console.log("💰 Amount A:", amtA.toString());
-    console.log("💰 Amount B:", amtB.toString());
-
-    // === [4] Approve Token A dan B ===
+    // === Approve token A ===
     showTxStatusModal("loading", "🔐 Approving Token A...");
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
+    console.log("🧾 Approve Token A TX Hash:", txA.hash);
     await txA.wait();
 
+    // === Approve token B ===
     showTxStatusModal("loading", "🔐 Approving Token B...");
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     const txB = await approveB.approve(routerAddress, amtB);
+    console.log("🧾 Approve Token B TX Hash:", txB.hash);
     await txB.wait();
 
-    console.log("✅ Approve sukses");
-
-    // === [5] Cek & Buat Pair ===
+    // === Cek Pair ===
     const existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("🔍 Pair ditemukan:", existingPair);
-
+    console.log("🔍 existingPair:", existingPair);
     if (!existingPair || existingPair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
       const createTx = await factoryContract.createPair(tokenA, tokenB);
+      console.log("🧾 createPair TX:", createTx.hash);
       await createTx.wait();
-      console.log("✅ Pair berhasil dibuat.");
-      await new Promise(r => setTimeout(r, 4000)); // tunggu pool siap
+      await new Promise(r => setTimeout(r, 5000)); // delay biar pool siap
     }
 
-    // === [6] Estimasi Harga (optional UI)
     await checkPairAndShowPrice(tokenA, tokenB, amountADesired, amountBDesired);
 
-    // === [7] Hitung Slippage & Deadline
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
     console.log("📉 Slippage:", slippage + "%");
-    console.log("✅ minA:", minA.toString());
-    console.log("✅ minB:", minB.toString());
+    console.log("✅ minA:", minA.toString(), "✅ minB:", minB.toString());
     console.log("⏳ Deadline:", deadline);
 
-    // === [8] Kirim Transaksi addLiquidity
+    // === Debug terakhir sebelum transaksi ===
+    console.log("=== PARAMETER ADD_LIQUIDITY ===");
+    console.log("Router:", routerAddress);
+    console.log("tokenA:", tokenA);
+    console.log("tokenB:", tokenB);
+    console.log("amtA:", amtA.toString());
+    console.log("amtB:", amtB.toString());
+    console.log("minA:", minA.toString());
+    console.log("minB:", minB.toString());
+    console.log("to:", userAddress);
+    console.log("deadline:", deadline);
+
+    // === Kirim Transaksi ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
@@ -354,6 +356,7 @@ console.log("🔢 Desimal Token B:", decB);
       userAddress,
       deadline
     );
+    console.log("🚀 addLiquidity TX:", tx.hash);
     const receipt = await tx.wait();
 
     showTxStatusModal(
@@ -363,11 +366,11 @@ console.log("🔢 Desimal Token B:", decB);
       `https://testnet.xoscan.io/tx/${receipt.hash}`
     );
 
-    console.log("🎉 Sukses addLiquidity TX:", receipt);
+    console.log("🎉 addLiquidity TX Receipt:", receipt);
     updateAllBalances();
 
   } catch (err) {
-    console.error("❌ ERROR DETAIL addLiquidity:", err);
+    console.error("❌ ERROR addLiquidity:", err);
     showTxStatusModal(
       "error",
       "❌ Gagal Add Liquidity",
@@ -379,6 +382,7 @@ console.log("🔢 Desimal Token B:", decB);
     setLiquidityLoading(false);
   }
 }
+
 
 
 
