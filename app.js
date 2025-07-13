@@ -285,14 +285,16 @@ async function addLiquidity() {
     console.log("🛠 Factory:", factoryAddress);
 
     // === [2] Cek Decimals dari Kontrak ===
-    const decA = 18 (tokenA);
-    const decB = 18 (tokenB);
-    console.log("DEBUG getDecimals:", decA, decB, typeof decA, typeof decB);
+    // === [2] Cek Decimals dari Kontrak ===
+const decA = 18;
+const decB = 18;
 
-    if (typeof decA !== 'number' || typeof decB !== 'number') throw new Error("❌ Gagal ambil desimal dari token.");
+console.log("DEBUG getDecimals:", decA, decB, typeof decA, typeof decB);
 
-    console.log("🔢 Desimal Token A:", decA);
-    console.log("🔢 Desimal Token B:", decB);
+if (typeof decA !== 'number' || typeof decB !== 'number') throw new Error("❌ Gagal ambil desimal dari token.");
+
+console.log("🔢 Desimal Token A:", decA);
+console.log("🔢 Desimal Token B:", decB);
 
     // === [3] Parse Amount ke BigNumber ===
     const amtA = ethers.parseUnits(amountADesired, decA);
