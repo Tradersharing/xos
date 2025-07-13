@@ -7,6 +7,7 @@ async function getDecimals(tokenAddress) {
   decimalCache[tokenAddress] = dec;
   return dec;
 }
+
 // === Constants & Setup ===
 let provider, signer, userAddress;
 let activeSelectionType = null;
