@@ -255,6 +255,7 @@ async function doSwap() {
 }
 
 // === Liquidity ===
+
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -264,56 +265,81 @@ async function addLiquidity() {
 
   const amountADesired = document.getElementById("liquidityAmountA").value;
   const amountBDesired = document.getElementById("liquidityAmountB").value;
-  if (!amountADesired || !amountBDesired ||
-      isNaN(amountADesired) || isNaN(amountBDesired)) {
+  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired)) {
     return alert("⚠️ Jumlah tidak valid.");
   }
 
-  try {
-    // 0. Tampilkan loading inline & modal
-    setLiquidityLoading(true);
-    showTxStatusModal("loading", "Mempersiapkan transaksi...");
+  setLiquidityLoading(true);
+  showTxStatusModal("loading", "⏳ Menyiapkan transaksi...");
 
+  try {
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
 
-    // 1. Cek & buat pair jika baru
-    const existingPair = await factoryContract.getPair(tokenA, tokenB);
-    if (existingPair === ethers.ZeroAddress) {
-      showTxStatusModal("loading", "Membuat pair baru...");
-      const txPair = await factoryContract.createPair(tokenA, tokenB);
-      await txPair.wait();
-      alert("✅ Pair berhasil dibuat.");
-      // beri sedikit jeda agar pool siap hitung reserves
-      await new Promise(r => setTimeout(r, 3000));
-    }
+    // === [1] Cek Router & Factory ===
+    if (!routerContract || !factoryContract) throw new Error("Kontrak Router/Factory belum terhubung.");
+    console.log("🛠 Router:", routerAddress);
+    console.log("🛠 Factory:", factoryAddress);
 
-    // 2. Tampilkan estimasi harga / LP pertama
-    await checkPairAndShowPrice(tokenA, tokenB, amountADesired, amountBDesired);
+    // === [2] Cek Decimals dari Kontrak ===
+    const decA = await getDecimals(tokenA);
+    const decB = await getDecimals(tokenB);
+    if (typeof decA !== 'number' || typeof decB !== 'number') throw new Error("❌ Gagal ambil desimal dari token.");
 
-    // 3. Parsing jumlah ke BigNumber
-    
-const decA = await getDecimals(tokenA);
-const decB = await getDecimals(tokenB);
-const amtA = ethers.parseUnits(amountADesired, decA);
-const amtB = ethers.parseUnits(amountBDesired, decB);
+    console.log("🔢 Desimal Token A:", decA);
+    console.log("🔢 Desimal Token B:", decB);
 
-    // 4. Approve kedua token
-    showTxStatusModal("loading", "Menunggu signature Approve...");
+    // === [3] Parse Amount ke BigNumber ===
+    const amtA = ethers.parseUnits(amountADesired, decA);
+    const amtB = ethers.parseUnits(amountBDesired, decB);
+
+    if (!amtA || !amtB) throw new Error("❌ Gagal parsing amount ke BigNumber.");
+
+    console.log("💰 Amount A:", amtA.toString());
+    console.log("💰 Amount B:", amtB.toString());
+
+    // === [4] Approve Token A dan B ===
+    showTxStatusModal("loading", "🔐 Approving Token A...");
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
+    const txA = await approveA.approve(routerAddress, amtA);
+    await txA.wait();
+
+    showTxStatusModal("loading", "🔐 Approving Token B...");
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
-    await (await approveA.approve(routerAddress, amtA)).wait();
-    await (await approveB.approve(routerAddress, amtB)).wait();
+    const txB = await approveB.approve(routerAddress, amtB);
+    await txB.wait();
 
-    // 5. Hitung slippage & deadline
+    console.log("✅ Approve sukses");
+
+    // === [5] Cek & Buat Pair ===
+    const existingPair = await factoryContract.getPair(tokenA, tokenB);
+    console.log("🔍 Pair ditemukan:", existingPair);
+
+    if (!existingPair || existingPair === ethers.ZeroAddress) {
+      showTxStatusModal("loading", "🔨 Membuat pair baru...");
+      const createTx = await factoryContract.createPair(tokenA, tokenB);
+      await createTx.wait();
+      console.log("✅ Pair berhasil dibuat.");
+      await new Promise(r => setTimeout(r, 4000)); // tunggu pool siap
+    }
+
+    // === [6] Estimasi Harga (optional UI)
+    await checkPairAndShowPrice(tokenA, tokenB, amountADesired, amountBDesired);
+
+    // === [7] Hitung Slippage & Deadline
     const slippage = getSlippage();
-const minA = amtA * BigInt(100 - slippage) / 100n;
-const minB = amtB * BigInt(100 - slippage) / 100n;
-const deadline = Math.floor(Date.now() / 1000) + 600;
+    const minA = amtA * BigInt(100 - slippage) / 100n;
+    const minB = amtB * BigInt(100 - slippage) / 100n;
+    const deadline = Math.floor(Date.now() / 1000) + 600;
 
-    // 6. Kirim transaksi addLiquidity
-    showTxStatusModal("loading", "Mengirim addLiquidity...");
+    console.log("📉 Slippage:", slippage + "%");
+    console.log("✅ minA:", minA.toString());
+    console.log("✅ minB:", minB.toString());
+    console.log("⏳ Deadline:", deadline);
+
+    // === [8] Kirim Transaksi addLiquidity
+    showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
       amtA, amtB,
@@ -323,18 +349,25 @@ const deadline = Math.floor(Date.now() / 1000) + 600;
     );
     const receipt = await tx.wait();
 
-    // 7. Sukses!
     showTxStatusModal(
       "success",
-      "Liquidity berhasil ditambahkan!",
+      "✅ Liquidity Berhasil!",
       `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
-      `https://testnet.xoscan.io/tx/${receipt.transactionHash}`
+      `https://testnet.xoscan.io/tx/${receipt.hash}`
     );
+
+    console.log("🎉 Sukses addLiquidity TX:", receipt);
     updateAllBalances();
 
-  } catch (e) {
-    console.error("❌ Error addLiquidity:", e);
-    showTxStatusModal("error", "Gagal tambah liquidity", "", "");
+  } catch (err) {
+    console.error("❌ ERROR DETAIL addLiquidity:", err);
+    showTxStatusModal(
+      "error",
+      "❌ Gagal Add Liquidity",
+      err?.reason || err?.message || "Unknown error",
+      ""
+    );
+    alert("🔍 Detail Error: " + (err?.reason || err?.message || JSON.stringify(err)));
   } finally {
     setLiquidityLoading(false);
   }
