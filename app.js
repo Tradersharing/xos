@@ -247,65 +247,88 @@ async function doSwap() {
 // === Liquidity ===
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
-  if (!selectedLiquidityIn || !selectedLiquidityOut) return alert("❗ Pilih token A dan B untuk liquidity.");
-  if (selectedLiquidityIn.address === selectedLiquidityOut.address) return alert("❗ Token A dan B harus berbeda.");
+  if (!selectedLiquidityIn || !selectedLiquidityOut)
+    return alert("❗ Pilih token A dan B untuk liquidity.");
+  if (selectedLiquidityIn.address === selectedLiquidityOut.address)
+    return alert("❗ Token A dan B harus berbeda.");
 
   const amountADesired = document.getElementById("liquidityAmountA").value;
   const amountBDesired = document.getElementById("liquidityAmountB").value;
-
-  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired)) {
+  if (!amountADesired || !amountBDesired ||
+      isNaN(amountADesired) || isNaN(amountBDesired)) {
     return alert("⚠️ Jumlah tidak valid.");
   }
 
   try {
-    // ===== Cek dan Buat Pair jika belum ada =====
+    // 0. Tampilkan loading inline & modal
+    setLiquidityLoading(true);
+    showTxStatusModal("loading", "Mempersiapkan transaksi...");
+
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
+
+    // 1. Cek & buat pair jika baru
     const existingPair = await factoryContract.getPair(tokenA, tokenB);
     if (existingPair === ethers.ZeroAddress) {
+      showTxStatusModal("loading", "Membuat pair baru...");
       const txPair = await factoryContract.createPair(tokenA, tokenB);
       await txPair.wait();
-      alert("✅ Pair berhasil dibuat. Lanjut tambah liquidity...");
+      alert("✅ Pair berhasil dibuat.");
+      // beri sedikit jeda agar pool siap hitung reserves
+      await new Promise(r => setTimeout(r, 3000));
     }
 
+    // 2. Tampilkan estimasi harga / LP pertama
+    await checkPairAndShowPrice(tokenA, tokenB, amountADesired, amountBDesired);
+
+    // 3. Parsing jumlah ke BigNumber
     const amtA = ethers.parseUnits(amountADesired, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(amountBDesired, selectedLiquidityOut.decimals);
 
-    // Approve router untuk kedua token
+    // 4. Approve kedua token
+    showTxStatusModal("loading", "Menunggu signature Approve...");
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     await (await approveA.approve(routerAddress, amtA)).wait();
     await (await approveB.approve(routerAddress, amtB)).wait();
 
-    // Hitung slippage dan deadline
+    // 5. Hitung slippage & deadline
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
-    // Panggil addLiquidity pada router
+    // 6. Kirim transaksi addLiquidity
+    showTxStatusModal("loading", "Mengirim addLiquidity...");
     const tx = await routerContract.addLiquidity(
-      tokenA,
-      tokenB,
-      amtA,
-      amtB,
-      minA,
-      minB,
+      tokenA, tokenB,
+      amtA, amtB,
+      minA, minB,
       userAddress,
       deadline
     );
+    const receipt = await tx.wait();
 
-    await tx.wait();
-    alert("✅ Berhasil tambah liquidity.");
+    // 7. Sukses!
+    showTxStatusModal(
+      "success",
+      "Liquidity berhasil ditambahkan!",
+      `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
+      `https://testnet.xoscan.io/tx/${receipt.transactionHash}`
+    );
     updateAllBalances();
+
   } catch (e) {
     console.error("❌ Error addLiquidity:", e);
-    alert("❌ Gagal tambah liquidity: " + (e?.message || e));
+    showTxStatusModal("error", "Gagal tambah liquidity", "", "");
+  } finally {
+    setLiquidityLoading(false);
   }
-
-
 }
+
+
+
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
   const el = document.getElementById("liquidityLoading");
