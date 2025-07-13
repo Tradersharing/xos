@@ -308,9 +308,9 @@ const amtB = ethers.parseUnits(amountBDesired, decB);
 
     // 5. Hitung slippage & deadline
     const slippage = getSlippage();
-    const minA = amtA * BigInt(100 - slippage) / 100n;
-    const minB = amtB * BigInt(100 - slippage) / 100n;
-    const deadline = Math.floor(Date.now() / 1000) + 600;
+const minA = amtA * BigInt(100 - slippage) / 100n;
+const minB = amtB * BigInt(100 - slippage) / 100n;
+const deadline = Math.floor(Date.now() / 1000) + 600;
 
     // 6. Kirim transaksi addLiquidity
     showTxStatusModal("loading", "Mengirim addLiquidity...");
