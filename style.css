@@ -278,3 +278,35 @@ button:hover {
   border-color: #00bfff;
   background-color: #2a2a2a;
 }
+#priceEstimateBox {
+  transition: all 0.3s ease;
+}
+
+#priceEstimateBox.show {
+  display: block;
+}
+
+#priceEstimateBox.hide {
+  display: none;
+}
+
+#priceEstimateResult {
+  margin-top: 6px;
+  padding: 10px;
+  background-color: #111;
+  border: 1px solid #0bf;
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  text-align: center;
+}
+
+#priceEstimateLoading img {
+  animation: spin 1s linear infinite;
+  margin-bottom: 6px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
