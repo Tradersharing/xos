@@ -244,13 +244,23 @@ async function addLiquidity() {
   }
 
   try {
+    // ===== Cek dan Buat Pair jika belum ada =====
+    const tokenA = selectedLiquidityIn.address;
+    const tokenB = selectedLiquidityOut.address;
+    const existingPair = await factoryContract.getPair(tokenA, tokenB);
+    if (existingPair === ethers.ZeroAddress) {
+      const txPair = await factoryContract.createPair(tokenA, tokenB);
+      await txPair.wait();
+      alert("✅ Pair berhasil dibuat. Lanjut tambah liquidity...");
+    }
+
     const amtA = ethers.parseUnits(amountADesired, selectedLiquidityIn.decimals);
     const amtB = ethers.parseUnits(amountBDesired, selectedLiquidityOut.decimals);
 
     // Approve router untuk kedua token
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
-    const approveA = new ethers.Contract(selectedLiquidityIn.address, tokenAbi, signer);
-    const approveB = new ethers.Contract(selectedLiquidityOut.address, tokenAbi, signer);
+    const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
+    const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     await (await approveA.approve(routerAddress, amtA)).wait();
     await (await approveB.approve(routerAddress, amtB)).wait();
 
@@ -260,10 +270,10 @@ async function addLiquidity() {
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
-    // Panggil addLiquidity
+    // Panggil addLiquidity pada router
     const tx = await routerContract.addLiquidity(
-      selectedLiquidityIn.address,
-      selectedLiquidityOut.address,
+      tokenA,
+      tokenB,
       amtA,
       amtB,
       minA,
@@ -279,10 +289,9 @@ async function addLiquidity() {
     console.error("❌ Error addLiquidity:", e);
     alert("❌ Gagal tambah liquidity: " + (e?.message || e));
   }
+
+
 }
-
-
-
 
 
 // === Update Balances ===
