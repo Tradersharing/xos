@@ -329,7 +329,17 @@ async function addLiquidity() {
     console.log("✅ minA:", minA.toString());
     console.log("✅ minB:", minB.toString());
     console.log("⏳ Deadline:", deadline);
-
+    console.log("=== PARAMETER ADD_LIQUIDITY ===");
+console.log("Router:", routerAddress);
+console.log("tokenA:", tokenA);
+console.log("tokenB:", tokenB);
+console.log("amtA:", amtA.toString());
+console.log("amtB:", amtB.toString());
+console.log("minA:", minA.toString());
+console.log("minB:", minB.toString());
+console.log("to:", userAddress);
+console.log("deadline:", deadline);
+    
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
