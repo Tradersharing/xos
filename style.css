@@ -310,3 +310,72 @@ button:hover {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.tx-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999;
+}
+
+.tx-modal.hidden { display: none; }
+
+.tx-modal-content {
+  background: #121212;
+  border: 1px solid #0bf;
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: center;
+  color: white;
+  max-width: 320px;
+  width: 90%;
+}
+
+.tx-spinner {
+  border: 6px solid #2c2c2c;
+  border-top: 6px solid #0bf;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  margin: auto;
+  animation: spin 1s linear infinite;
+}
+
+.tx-checkmark {
+  width: 50px;
+  height: 50px;
+  background: url('assets/check.png') no-repeat center;
+  background-size: contain;
+  margin: auto;
+}
+
+.tx-error {
+  width: 50px;
+  height: 50px;
+  background: url('assets/error.png') no-repeat center;
+  background-size: contain;
+  margin: auto;
+}
+
+#txStatusToken {
+  margin: 10px 0;
+  color: #0f0;
+  font-weight: bold;
+}
+
+#txStatusCloseBtn {
+  background: #0bf;
+  border: none;
+  padding: 10px 20px;
+  color: #fff;
+  border-radius: 8px;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
