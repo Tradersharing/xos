@@ -3,10 +3,12 @@ async function getDecimals(tokenAddress) {
   if (tokenAddress === "native") return 18;
   if (decimalCache[tokenAddress]) return decimalCache[tokenAddress];
   const contract = new ethers.Contract(tokenAddress, ["function decimals() view returns (uint8)"], provider);
-  const dec = await contract.decimals();
+  let dec = await contract.decimals();
+  if (typeof dec !== "number") dec = dec.toNumber();  // Ini penting!
   decimalCache[tokenAddress] = dec;
   return dec;
 }
+
 
 // === Constants & Setup ===
 let provider, signer, userAddress;
