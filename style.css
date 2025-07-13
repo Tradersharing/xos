@@ -329,7 +329,7 @@ button:hover {
   padding: 20px 24px;
   text-align: center;
   color: white;
-  max-width: 320px;
+  max-width: 250px;
   width: 90%;
 }
 
@@ -379,3 +379,6 @@ button:hover {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+
+  
