@@ -356,6 +356,39 @@ async function updateAllBalances() {
   }
 }
 
+function showTxStatusModal(status = "loading", message = "Submitting...", token = "", explorerUrl = "") {
+  const modal = document.getElementById("txStatusModal");
+  const icon = document.getElementById("txStatusIcon");
+  const text = document.getElementById("txStatusText");
+  const tokenEl = document.getElementById("txStatusToken");
+  const link = document.getElementById("txExplorerLink");
+
+  // Reset
+  icon.className = "";
+  link.style.display = "none";
+
+  // Set status icon
+  if (status === "loading") icon.classList.add("tx-spinner");
+  else if (status === "success") icon.classList.add("tx-checkmark");
+  else icon.classList.add("tx-error");
+
+  // Update text
+  text.textContent = message;
+  tokenEl.textContent = token ? `Added ${token}` : "";
+  
+  // Block explorer link
+  if (explorerUrl) {
+    link.href = explorerUrl;
+    link.style.display = "block";
+  }
+
+  modal.classList.remove("hidden");
+}
+
+function hideTxStatusModal() {
+  document.getElementById("txStatusModal").classList.add("hidden");
+}
+
 // === Tab Switch ===
 function switchPage(btn) {
   document.querySelectorAll(".tab-bar button").forEach(b=>b.classList.remove("active"));
