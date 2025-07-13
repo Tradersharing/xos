@@ -93,16 +93,29 @@ async function connectWallet() {
 async function tryAutoConnect() {
   try {
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
+
     if (accounts.length > 0) {
       userAddress = accounts[0];
+
+      // 🔧 Pastikan provider dan signer dibuat ulang di sini
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+
+      // 🔧 Re-inisialisasi kontrak setelah signer ada
+      routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+      factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
+
       updateWalletUI();
       updateAllBalances();
-    } else resetUI();
+    } else {
+      resetUI();
+    }
   } catch (e) {
-    console.error(e);
+    console.error("❌ Error auto-connect:", e);
     resetUI();
   }
 }
+
 
 async function ensureCorrectChain() {
   try {
