@@ -105,6 +105,16 @@
   </div>
 </div>
 
+<!-- === Modal Status Transaksi === -->
+<div id="txStatusModal" class="tx-modal hidden">
+  <div class="tx-modal-content">
+    <div id="txStatusIcon" class="tx-spinner"></div>
+    <div id="txStatusText">Transaction submitted...</div>
+    <div id="txStatusToken"></div>
+    <button id="txStatusCloseBtn" onclick="hideTxStatusModal()">Close</button>
+    <a id="txExplorerLink" href="#" target="_blank" style="display:none;">View on Block Explorer</a>
+  </div>
+</div>
 
   <!-- === Staking Page === -->
   <div id="staking" class="page">
