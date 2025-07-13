@@ -1,3 +1,12 @@
+const decimalCache = {};
+async function getDecimals(tokenAddress) {
+  if (tokenAddress === "native") return 18;
+  if (decimalCache[tokenAddress]) return decimalCache[tokenAddress];
+  const contract = new ethers.Contract(tokenAddress, ["function decimals() view returns (uint8)"], provider);
+  const dec = await contract.decimals();
+  decimalCache[tokenAddress] = dec;
+  return dec;
+}
 // === Constants & Setup ===
 let provider, signer, userAddress;
 let activeSelectionType = null;
@@ -29,12 +38,13 @@ const factoryAbi = [
 
 // Token List
 const tokenList = [
-  { address: "native", symbol: "XOS", decimals: 18 },
-  { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS", decimals: 18 },
-  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT", decimals: 18 },
-  { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC", decimals: 18 },
-  { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap", decimals: 18 }
+  { address: "native", symbol: "XOS" },
+  { address: "0x0AAB67cf6F2e99847b9A95DeC950B250D648c1BB", symbol: "wXOS" },
+  { address: "0x2CCDB83a043A32898496c1030880Eb2cB977CAbc", symbol: "USDT" },
+  { address: "0xb2C1C007421f0Eb5f4B3b3F38723C309Bb208d7d", symbol: "USDC" },
+  { address: "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151", symbol: "Tswap" }
 ];
+
 
 // Contracts & State
 let routerContract, factoryContract;
@@ -282,8 +292,11 @@ async function addLiquidity() {
     await checkPairAndShowPrice(tokenA, tokenB, amountADesired, amountBDesired);
 
     // 3. Parsing jumlah ke BigNumber
-    const amtA = ethers.parseUnits(amountADesired, selectedLiquidityIn.decimals);
-    const amtB = ethers.parseUnits(amountBDesired, selectedLiquidityOut.decimals);
+    
+const decA = await getDecimals(tokenA);
+const decB = await getDecimals(tokenB);
+const amtA = ethers.parseUnits(amountADesired, decA);
+const amtB = ethers.parseUnits(amountBDesired, decB);
 
     // 4. Approve kedua token
     showTxStatusModal("loading", "Menunggu signature Approve...");
