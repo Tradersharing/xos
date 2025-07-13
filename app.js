@@ -56,7 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await ensureCorrectChain();
   await tryAutoConnect();
-
+  document.getElementById("liquidityAmountA").addEventListener("input", updatePriceEstimate);
+  document.getElementById("liquidityAmountB").addEventListener("input", updatePriceEstimate);
   document.getElementById("btnConnect").addEventListener("click", connectWallet);
   document.getElementById("tokenInBtn").addEventListener("click", () => openTokenSelector("swapIn"));
   document.getElementById("tokenOutBtn").addEventListener("click", () => openTokenSelector("swapOut"));
@@ -305,7 +306,46 @@ async function addLiquidity() {
 
 
 }
+// === Fungsi Loading ===
+function setLiquidityLoading(state) {
+  const el = document.getElementById("liquidityLoading");
+  el.style.display = state ? "block" : "none";
+  el.textContent = state ? "⏳ Memproses transaksi..." : "";
+}
 
+// === Fungsi Estimasi Harga ===
+async function updatePriceEstimate() {
+  const valA = document.getElementById("liquidityAmountA").value;
+  const valB = document.getElementById("liquidityAmountB").value;
+  const box = document.getElementById("priceEstimateBox");
+  const loading = document.getElementById("priceEstimateLoading");
+  const result = document.getElementById("priceEstimateResult");
+  const info = document.getElementById("priceInfoText");
+
+  // Reset tampilan
+  result.style.display = "none";
+  info.textContent = "";
+
+  // Sembunyikan bila tidak ada input
+  if (!valA || !valB || isNaN(valA) || isNaN(valB) || valA <= 0 || valB <= 0) {
+    box.style.display = "none";
+    return;
+  }
+
+  box.style.display = "block";
+  loading.style.display = "block";
+
+  try {
+    // Estimasi harga = Token B / Token A
+    const price = parseFloat(valB) / parseFloat(valA);
+    await new Promise(r => setTimeout(r, 800)); // simulasi delay
+    loading.style.display = "none";
+    result.style.display = "block";
+    info.textContent = `1 ${selectedLiquidityIn?.symbol || "Token A"} ≈ ${price.toFixed(6)} ${selectedLiquidityOut?.symbol || "Token B"}`;
+  } catch (e) {
+    info.textContent = "❌ Gagal menghitung estimasi.";
+  }
+}
 
 // === Update Balances ===
 async function updateAllBalances() {
