@@ -25,7 +25,7 @@ const XOS_PARAMS = {
 };
 
 // Contract Addresses
-const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151";
+const routerAddress = "0x8cece9c49a7892e93d4beb73a915485be2ad0a61";
 const factoryAddress = "0x6b469eDB9FeE58ECA93699281eD83C6FAc179701";
 
 
