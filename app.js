@@ -309,6 +309,10 @@ async function addLiquidity() {
     console.log("✅ Token B approved");
 
     // Pair check dan createPair
+// 🔍 Tambahkan setelah createPair sukses:
+
+
+    
     const existingPair = await factoryContract.getPair(tokenA, tokenB);
     console.log("🔍 Pair check:", existingPair);
 
@@ -320,7 +324,19 @@ async function addLiquidity() {
       console.log("✅ Pair created.");
       await new Promise(r => setTimeout(r, 4000));
     }
-
+  // 🔁 Tunggu pair tersimpan ke mapping
+  let retry = 0;
+  while (retry < 5) {
+    await new Promise(r => setTimeout(r, 2000)); // 2 detik delay
+    const newPair = await factoryContract.getPair(tokenA, tokenB);
+    if (newPair && newPair !== ethers.ZeroAddress) {
+      console.log("🔁 Pair terdeteksi:", newPair);
+      break;
+    }
+    retry++;
+    console.warn("⌛ Menunggu pair muncul di getPair... (try", retry, ")");
+  }
+}
     // Slippage dan Deadline
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
@@ -341,6 +357,11 @@ async function addLiquidity() {
     console.log("minB:", minB.toString());
     console.log("to:", userAddress);
     console.log("deadline:", deadline);
+    console.log("🚨 FINAL CHECK sebelum addLiquidity:");
+
+console.log("pair (via getPair):", await factoryContract.getPair(tokenA, tokenB));
+
+
 
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
