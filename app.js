@@ -261,6 +261,7 @@ async function doSwap() {
 // === Liquidity ===
 
 
+
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -324,8 +325,19 @@ async function addLiquidity() {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
       const createTx = await factoryContract.createPair(tokenA, tokenB);
       console.log("⏳ Create Pair Tx Sent:", createTx.hash);
-      await createTx.wait();
-      console.log("✅ Pair berhasil dibuat");
+      const createReceipt = await createTx.wait();
+      console.log("✅ Pair berhasil dibuat di block:", createReceipt.blockNumber);
+
+      // ✅ Validasi: Pastikan pair sudah muncul di getPair
+      const confirmedPair = await factoryContract.getPair(tokenA, tokenB);
+      if (!confirmedPair || confirmedPair === ethers.ZeroAddress) {
+        console.error("❌ Pair belum muncul setelah createPair. Mungkin gagal saat initialize.");
+        throw new Error("❌ Pair tidak berhasil dibuat atau belum diinisialisasi. Periksa logika kontrak.");
+      } else {
+        console.log("✅ Pair valid dan aktif di getPair:", confirmedPair);
+      }
+
+      // Opsional: beri waktu 4 detik untuk sync internal state
       await new Promise(r => setTimeout(r, 4000));
     }
 
@@ -352,53 +364,59 @@ async function addLiquidity() {
     console.log("to:", userAddress);
     console.log("deadline:", deadline);
 
-    // === [8] Eksekusi addLiquidity ===
+    // === [8] Eksekusi addLiquidity (dengan log lengkap) ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
-    const tx = await routerContract.addLiquidity(
+    console.log("🚀 Mulai addLiquidity dengan parameter:", {
+      tokenA, tokenB, amtA: amtA.toString(), amtB: amtB.toString(),
+      minA: minA.toString(), minB: minB.toString(),
+      to: userAddress, deadline
+    });
+
+    const txAL = await routerContract.addLiquidity(
       tokenA, tokenB,
       amtA, amtB,
       minA, minB,
       userAddress,
       deadline
     );
-    console.log("⏳ addLiquidity tx sent:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("🎉 Sukses addLiquidity TX:", receipt);
+    console.log("⏳ addLiquidity tx sent:", txAL.hash);
+
+    const receiptAL = await txAL.wait();
+    console.log("🎉 addLiquidity mined in block:", receiptAL.blockNumber);
+    console.log("📑 Receipt:", receiptAL);
 
     showTxStatusModal(
       "success",
       "✅ Liquidity Berhasil!",
       `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
-      `https://testnet.xoscan.io/tx/${receipt.hash}`
+      `https://testnet.xoscan.io/tx/${receiptAL.transactionHash}`
     );
-
     updateAllBalances();
 
-  } catch (err) {
-    console.error("❌ ERROR DETAIL addLiquidity:", err);
+  } catch (error) {
+    console.error("❌ ERROR addLiquidity:", error);
 
-    let detailedMsg = err?.reason || err?.message || "Unknown error";
-    if (err?.error && typeof err.error === "object") {
-      detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
-    }
-    if (err?.data) {
-      detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
-    }
-    if (err?.transaction) {
-      detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
-    }
+    // Ambil detail paling mendasar
+    const code = error.code || "no-code";
+    const reason = error.reason || (error.error && error.error.message) || error.message;
+    const data = error.data || (error.error && error.error.data);
+    console.error("— code:", code);
+    console.error("— reason:", reason);
+    if (data) console.error("— revert data / RPC error data:", data);
 
     showTxStatusModal(
       "error",
       "❌ Gagal Add Liquidity",
-      detailedMsg,
+      `code: ${code}\nreason: ${reason}`,
       ""
     );
-    alert("🔍 Detail Error: " + detailedMsg);
+    alert(`🔍 Detail Error:\ncode: ${code}\nreason: ${reason}`);
   } finally {
     setLiquidityLoading(false);
   }
 }
+
+    
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
