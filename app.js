@@ -288,10 +288,9 @@ async function addLiquidity() {
     console.log("🔁 Token B:", tokenB);
 
     // Ambil desimal token (sementara pake 18, bisa diganti getDecimals)
-    const decA = await getDecimals(tokenA);
-const decB = await getDecimals(tokenB);
-console.log("🔢 Decimals A:", decA, "Decimals B:", decB);
-
+    const decA = 18; // sementara manual biar fokus error lain
+    const decB = 18;
+    
     console.log("🔢 Desimal Token A:", decA);
     console.log("🔢 Desimal Token B:", decB);
 
