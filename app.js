@@ -260,7 +260,6 @@ async function doSwap() {
 
 // === Liquidity ===
 
-
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -283,53 +282,46 @@ async function addLiquidity() {
 
     console.log("🛠 Router:", routerAddress);
     console.log("🛠 Factory:", factoryAddress);
-    console.log("🔁 Token A:", tokenA);
-    console.log("🔁 Token B:", tokenB);
 
-    // === [1] Ambil desimal token ===
-    const decA = 18; // sementara manual biar fokus error lain
+    const decA = 18;
     const decB = 18;
     console.log("🔢 Desimal Token A:", decA);
     console.log("🔢 Desimal Token B:", decB);
 
-    // === [2] Parse ke BigNumber ===
     const amtA = ethers.parseUnits(amountADesired, decA);
     const amtB = ethers.parseUnits(amountBDesired, decB);
     console.log("💰 Amount A:", amtA.toString());
     console.log("💰 Amount B:", amtB.toString());
 
-    // === [3] Approve Token A ===
     showTxStatusModal("loading", "🔐 Approving Token A...");
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve Token A Tx Sent:", txA.hash);
+    console.log("⏳ Approve A tx:", txA.hash);
     await txA.wait();
-    console.log("✅ Approve Token A Confirmed");
+    console.log("✅ Token A approved");
 
-    // === [4] Approve Token B ===
     showTxStatusModal("loading", "🔐 Approving Token B...");
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     const txB = await approveB.approve(routerAddress, amtB);
-    console.log("⏳ Approve Token B Tx Sent:", txB.hash);
+    console.log("⏳ Approve B tx:", txB.hash);
     await txB.wait();
-    console.log("✅ Approve Token B Confirmed");
+    console.log("✅ Token B approved");
 
-    // === [5] Cek & Buat Pair ===
-    console.log("🔍 Cek apakah pair sudah ada...");
+    // Pair check dan createPair
     const existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("🔍 Pair ditemukan:", existingPair);
+    console.log("🔍 Pair check:", existingPair);
 
     if (!existingPair || existingPair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
       const createTx = await factoryContract.createPair(tokenA, tokenB);
-      console.log("⏳ Create Pair Tx Sent:", createTx.hash);
+      console.log("⏳ CreatePair tx sent:", createTx.hash);
       await createTx.wait();
-      console.log("✅ Pair berhasil dibuat");
+      console.log("✅ Pair created.");
       await new Promise(r => setTimeout(r, 4000));
     }
 
-    // === [6] Slippage & Deadline ===
+    // Slippage dan Deadline
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
@@ -339,8 +331,6 @@ async function addLiquidity() {
     console.log("✅ minA:", minA.toString());
     console.log("✅ minB:", minB.toString());
     console.log("⏳ Deadline:", deadline);
-
-    // === [7] Debug Parameter Lengkap ===
     console.log("=== PARAMETER ADD_LIQUIDITY ===");
     console.log("Router:", routerAddress);
     console.log("tokenA:", tokenA);
@@ -352,7 +342,6 @@ async function addLiquidity() {
     console.log("to:", userAddress);
     console.log("deadline:", deadline);
 
-    // === [8] Eksekusi addLiquidity ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
@@ -363,7 +352,7 @@ async function addLiquidity() {
     );
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     const receipt = await tx.wait();
-    console.log("🎉 Sukses addLiquidity TX:", receipt);
+    console.log("🎉 TX Confirmed:", receipt.hash);
 
     showTxStatusModal(
       "success",
@@ -373,7 +362,6 @@ async function addLiquidity() {
     );
 
     updateAllBalances();
-
   } catch (err) {
     console.error("❌ ERROR DETAIL addLiquidity:", err);
 
@@ -399,6 +387,8 @@ async function addLiquidity() {
     setLiquidityLoading(false);
   }
 }
+
+
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
