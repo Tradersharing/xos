@@ -26,7 +26,7 @@ const XOS_PARAMS = {
 
 // Contract Addresses
 const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151";
-const factoryAddress = "0x45ef28a8bc5005e1c9f9add149ffb0551f4e7e24";
+const factoryAddress = "0x45ef28A8BC5005E1C9F9aDD149fFb0551F4e7E24";
 
 // Minimal ABIs
 const routerAbi = [
