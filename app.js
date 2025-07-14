@@ -260,6 +260,7 @@ async function doSwap() {
 
 // === Liquidity ===
 
+
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -282,62 +283,53 @@ async function addLiquidity() {
 
     console.log("🛠 Router:", routerAddress);
     console.log("🛠 Factory:", factoryAddress);
+    console.log("🔁 Token A:", tokenA);
+    console.log("🔁 Token B:", tokenB);
 
-    const decA = 18;
+    // === [1] Ambil desimal token ===
+    const decA = 18; // sementara manual biar fokus error lain
     const decB = 18;
     console.log("🔢 Desimal Token A:", decA);
     console.log("🔢 Desimal Token B:", decB);
 
+    // === [2] Parse ke BigNumber ===
     const amtA = ethers.parseUnits(amountADesired, decA);
     const amtB = ethers.parseUnits(amountBDesired, decB);
     console.log("💰 Amount A:", amtA.toString());
     console.log("💰 Amount B:", amtB.toString());
 
+    // === [3] Approve Token A ===
     showTxStatusModal("loading", "🔐 Approving Token A...");
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve A tx:", txA.hash);
+    console.log("⏳ Approve Token A Tx Sent:", txA.hash);
     await txA.wait();
-    console.log("✅ Token A approved");
+    console.log("✅ Approve Token A Confirmed");
 
+    // === [4] Approve Token B ===
     showTxStatusModal("loading", "🔐 Approving Token B...");
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     const txB = await approveB.approve(routerAddress, amtB);
-    console.log("⏳ Approve B tx:", txB.hash);
+    console.log("⏳ Approve Token B Tx Sent:", txB.hash);
     await txB.wait();
-    console.log("✅ Token B approved");
+    console.log("✅ Approve Token B Confirmed");
 
-    // Pair check dan createPair
-// 🔍 Tambahkan setelah createPair sukses:
-
-
-    
+    // === [5] Cek & Buat Pair ===
+    console.log("🔍 Cek apakah pair sudah ada...");
     const existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("🔍 Pair check:", existingPair);
+    console.log("🔍 Pair ditemukan:", existingPair);
 
     if (!existingPair || existingPair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
       const createTx = await factoryContract.createPair(tokenA, tokenB);
-      console.log("⏳ CreatePair tx sent:", createTx.hash);
+      console.log("⏳ Create Pair Tx Sent:", createTx.hash);
       await createTx.wait();
-      console.log("✅ Pair created.");
+      console.log("✅ Pair berhasil dibuat");
       await new Promise(r => setTimeout(r, 4000));
     }
-  // 🔁 Tunggu pair tersimpan ke mapping
-  let retry = 0;
-  while (retry < 5) {
-    await new Promise(r => setTimeout(r, 2000)); // 2 detik delay
-    const newPair = await factoryContract.getPair(tokenA, tokenB);
-    if (newPair && newPair !== ethers.ZeroAddress) {
-      console.log("🔁 Pair terdeteksi:", newPair);
-      break;
-    }
-    retry++;
-    console.warn("⌛ Menunggu pair muncul di getPair... (try", retry, ")");
-  }
-}
-    // Slippage dan Deadline
+
+    // === [6] Slippage & Deadline ===
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
@@ -347,6 +339,8 @@ async function addLiquidity() {
     console.log("✅ minA:", minA.toString());
     console.log("✅ minB:", minB.toString());
     console.log("⏳ Deadline:", deadline);
+
+    // === [7] Debug Parameter Lengkap ===
     console.log("=== PARAMETER ADD_LIQUIDITY ===");
     console.log("Router:", routerAddress);
     console.log("tokenA:", tokenA);
@@ -357,12 +351,8 @@ async function addLiquidity() {
     console.log("minB:", minB.toString());
     console.log("to:", userAddress);
     console.log("deadline:", deadline);
-    console.log("🚨 FINAL CHECK sebelum addLiquidity:");
 
-console.log("pair (via getPair):", await factoryContract.getPair(tokenA, tokenB));
-
-
-
+    // === [8] Eksekusi addLiquidity ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
@@ -373,7 +363,7 @@ console.log("pair (via getPair):", await factoryContract.getPair(tokenA, tokenB)
     );
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     const receipt = await tx.wait();
-    console.log("🎉 TX Confirmed:", receipt.hash);
+    console.log("🎉 Sukses addLiquidity TX:", receipt);
 
     showTxStatusModal(
       "success",
@@ -383,6 +373,7 @@ console.log("pair (via getPair):", await factoryContract.getPair(tokenA, tokenB)
     );
 
     updateAllBalances();
+
   } catch (err) {
     console.error("❌ ERROR DETAIL addLiquidity:", err);
 
@@ -408,8 +399,6 @@ console.log("pair (via getPair):", await factoryContract.getPair(tokenA, tokenB)
     setLiquidityLoading(false);
   }
 }
-
-
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
