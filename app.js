@@ -28,14 +28,14 @@ const XOS_PARAMS = {
 const routerAddress = "0x08b154359d5e6d4c7f4c8a1f3e4a2a345fc25a4e";
 const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a";
 
-
-
 // Minimal ABIs
 const routerAbi = [
   "function getAmountsOut(uint,address[]) view returns(uint[])",
   "function swapExactTokensForTokens(uint,uint,address[],address,uint) external returns(uint[])",
-  "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)"
+  "function addLiquidity(address,address,uint256,uint256,uint256,uint256,address) returns(uint256,uint256,uint256)"
 ];
+
+
 const factoryAbi = [
   "function getPair(address,address) view returns(address)",
   "function createPair(address,address) returns(address)"
@@ -360,7 +360,7 @@ async function addLiquidity() {
       minA,
       minB,
       userAddress,
-      deadline
+      
     );
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     const receipt = await tx.wait();
