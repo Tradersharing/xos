@@ -1,13 +1,13 @@
 // === Setup & Imports ===
-const routerAddress = "0x08b154359d5e6d4c7f4c8a1f3e4a2a345fc25a4e"; // ubah sesuai alamat deploy kamu
-const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a"; // ubah sesuai alamat deploy kamu
+const routerAddress = "0x08b154359d5e6d4c7f4c8a1f3e4a2a345fc25a4e"; // alamat deploy mu
+const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a"; // alamat deploy mu
 
-// ABI minimal untuk router dan factory sesuai kontrak kamu
 const routerAbi = [
-  "function addLiquidity(address,address,uint256,uint256,uint256,uint256,address) returns (uint256,uint256,uint256)",
+  "function addLiquidity(address,address,uint256,uint256,uint256,uint256,address,uint256) returns (uint256,uint256,uint256)",
   "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) external returns (uint256[])",
   "function getAmountsOut(uint256,address[]) view returns(uint256[])"
 ];
+
 const factoryAbi = [
   "function getPair(address,address) view returns(address)",
   "function createPair(address,address) returns(address)"
@@ -27,12 +27,12 @@ let routerContract, factoryContract;
 let selectedSwapIn = null, selectedSwapOut = null;
 let selectedLiquidityIn = null, selectedLiquidityOut = null;
 
-const decimalCache = {}; // cache decimals, tapi semua 18 default karena ERC20Minimal
+const decimalCache = {};
 
-// === Inisialisasi ===
+// === Init ===
 async function init() {
   if (!window.ethereum) {
-    alert("Please install MetaMask or compatible wallet!");
+    alert("Install MetaMask dulu bro.");
     return;
   }
   provider = new ethers.BrowserProvider(window.ethereum);
@@ -41,21 +41,22 @@ async function init() {
   routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
   factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
 
-  // coba auto connect
-  try {
-    const accounts = await window.ethereum.request({ method: "eth_accounts" });
-    if (accounts.length > 0) {
-      userAddress = accounts[0];
-      updateWalletUI();
-      updateAllBalances();
-    }
-  } catch (e) {
-    console.error(e);
+  const accounts = await window.ethereum.request({ method: "eth_accounts" });
+  if (accounts.length) {
+    userAddress = accounts[0];
+    updateWalletUI();
+    updateAllBalances();
   }
-  // Event UI connect
+
+  bindEvents();
+
+  window.ethereum.on("accountsChanged", handleAccountsChanged);
+  window.ethereum.on("chainChanged", () => location.reload());
+}
+
+function bindEvents() {
   document.getElementById("btnConnect").onclick = connectWallet;
 
-  // Token selection button example
   document.getElementById("tokenInBtn").onclick = () => openTokenSelector("swapIn");
   document.getElementById("tokenOutBtn").onclick = () => openTokenSelector("swapOut");
   document.getElementById("liquidityTokenInBtn").onclick = () => openTokenSelector("liqIn");
@@ -69,23 +70,19 @@ async function init() {
   document.getElementById("liquidityAmountB").oninput = updatePriceEstimate;
 
   populateTokenSelector();
-
-  window.ethereum.on("accountsChanged", handleAccountsChanged);
-  window.ethereum.on("chainChanged", () => window.location.reload());
 }
 
-// === Wallet Connect ===
+// === Connect Wallet ===
 async function connectWallet() {
   try {
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    if (accounts.length > 0) {
+    if (accounts.length) {
       userAddress = accounts[0];
       updateWalletUI();
       updateAllBalances();
     }
-  } catch (e) {
-    alert("Failed to connect wallet.");
-    console.error(e);
+  } catch {
+    alert("Gagal connect wallet");
   }
 }
 
@@ -100,23 +97,21 @@ function resetUI() {
   document.getElementById("btnConnect").innerText = "Connect Wallet";
 }
 
-// === Helpers ===
 function shortAddress(addr) {
-  if (!addr) return "";
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+  return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
 }
 
 // === Token Selector ===
 function populateTokenSelector() {
   const list = document.getElementById("tokenList");
   list.innerHTML = "";
-  for (const tok of tokenList) {
+  for (const t of tokenList) {
     const div = document.createElement("div");
     div.className = "token-item";
-    div.dataset.address = tok.address;
-    div.dataset.symbol = tok.symbol;
-    div.innerText = tok.symbol;
-    div.onclick = () => selectToken(tok);
+    div.dataset.address = t.address;
+    div.dataset.symbol = t.symbol;
+    div.innerText = t.symbol;
+    div.onclick = () => selectToken(t);
     list.appendChild(div);
   }
 }
@@ -126,18 +121,22 @@ function openTokenSelector(type) {
   activeSelectionType = type;
   document.getElementById("tokenSelector").style.display = "block";
 }
+
 function closeTokenSelector() {
   document.getElementById("tokenSelector").style.display = "none";
 }
 
 function selectToken(tok) {
-  if ((activeSelectionType === "swapIn" && selectedSwapOut?.address === tok.address) ||
-      (activeSelectionType === "swapOut" && selectedSwapIn?.address === tok.address) ||
-      (activeSelectionType === "liqIn" && selectedLiquidityOut?.address === tok.address) ||
-      (activeSelectionType === "liqOut" && selectedLiquidityIn?.address === tok.address)) {
+  if (
+    (activeSelectionType === "swapIn" && selectedSwapOut?.address === tok.address) ||
+    (activeSelectionType === "swapOut" && selectedSwapIn?.address === tok.address) ||
+    (activeSelectionType === "liqIn" && selectedLiquidityOut?.address === tok.address) ||
+    (activeSelectionType === "liqOut" && selectedLiquidityIn?.address === tok.address)
+  ) {
     alert("Token sudah dipilih di sisi lain");
     return;
   }
+
   if (activeSelectionType === "swapIn") {
     selectedSwapIn = tok;
     document.getElementById("tokenInBtn").innerText = tok.symbol;
@@ -151,6 +150,8 @@ function selectToken(tok) {
     selectedLiquidityOut = tok;
     document.getElementById("liquidityTokenOutBtn").innerText = tok.symbol;
   }
+
+  updateAllBalances();
   closeTokenSelector();
 }
 
@@ -168,11 +169,22 @@ async function getBalance(tok) {
 }
 
 async function updateAllBalances() {
-  for (const tok of tokenList) {
-    const bal = await getBalance(tok);
-    // Update UI jika ada elemen balance dengan id "bal-{symbol}"
-    const el = document.getElementById(`bal-${tok.symbol}`);
-    if (el) el.innerText = `Balance: ${bal}`;
+  if (!userAddress) return;
+  if (selectedSwapIn) {
+    const bal = await getBalance(selectedSwapIn);
+    document.getElementById("tokenInBalance").innerText = `Balance: ${bal}`;
+  }
+  if (selectedSwapOut) {
+    const bal = await getBalance(selectedSwapOut);
+    document.getElementById("tokenOutBalance").innerText = `Balance: ${bal}`;
+  }
+  if (selectedLiquidityIn) {
+    const bal = await getBalance(selectedLiquidityIn);
+    document.getElementById("liquidityTokenInBalance").innerText = `Balance: ${bal}`;
+  }
+  if (selectedLiquidityOut) {
+    const bal = await getBalance(selectedLiquidityOut);
+    document.getElementById("liquidityTokenOutBalance").innerText = `Balance: ${bal}`;
   }
 }
 
@@ -185,6 +197,10 @@ async function updateSwapPreview() {
     return;
   }
   try {
+    if (selectedSwapIn.address === "native" || selectedSwapOut.address === "native") {
+      document.getElementById("amountOut").value = "N/A";
+      return;
+    }
     const amountIn = ethers.parseUnits(val, selectedSwapIn.decimals);
     const amountsOut = await routerContract.getAmountsOut(amountIn, [selectedSwapIn.address, selectedSwapOut.address]);
     document.getElementById("amountOut").value = ethers.formatUnits(amountsOut[1], selectedSwapOut.decimals);
@@ -203,25 +219,25 @@ function getSlippage() {
 async function doSwap() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedSwapIn || !selectedSwapOut) return alert("❗ Pilih token swap in dan out");
+  if (selectedSwapIn.address === "native" || selectedSwapOut.address === "native")
+    return alert("Swap dengan native token belum didukung.");
+
   const val = document.getElementById("amount").value;
   if (!val || isNaN(val) || parseFloat(val) <= 0) return alert("⚠️ Jumlah swap tidak valid");
 
   try {
     const amountIn = ethers.parseUnits(val, selectedSwapIn.decimals);
 
-    // Approve token dulu kalo bukan native
-    if (selectedSwapIn.address !== "native") {
-      showTxStatusModal("loading", `Meng-approve ${selectedSwapIn.symbol}...`);
-      const tokenContract = new ethers.Contract(selectedSwapIn.address, ["function approve(address,uint256) returns(bool)"], signer);
-      const txApprove = await tokenContract.approve(routerAddress, amountIn);
-      await txApprove.wait();
-    }
+    showTxStatusModal("loading", `Meng-approve ${selectedSwapIn.symbol}...`);
+    const tokenContract = new ethers.Contract(selectedSwapIn.address, ["function approve(address,uint256) returns(bool)"], signer);
+    const txApprove = await tokenContract.approve(routerAddress, amountIn);
+    await txApprove.wait();
 
     const deadline = Math.floor(Date.now() / 1000) + 600;
     showTxStatusModal("loading", "Mengirim transaksi swap...");
     const tx = await routerContract.swapExactTokensForTokens(
       amountIn,
-      0, // minAmountOut (bisa ditambahkan logika slippage)
+      0,
       [selectedSwapIn.address, selectedSwapOut.address],
       userAddress,
       deadline
@@ -235,6 +251,28 @@ async function doSwap() {
     showTxStatusModal("error", "Gagal swap", e.message || e.reason || "Error tidak diketahui");
     alert("Gagal swap: " + (e.message || e.reason || "Error tidak diketahui"));
   }
+}
+
+// === Price Estimate ===
+function updatePriceEstimate() {
+  const a = document.getElementById("liquidityAmountA").value;
+  const b = document.getElementById("liquidityAmountB").value;
+  const priceBox = document.getElementById("priceEstimateBox");
+  const priceLoading = document.getElementById("priceEstimateLoading");
+  const priceResult = document.getElementById("priceEstimateResult");
+  const priceInfoText = document.getElementById("priceInfoText");
+
+  if (!a || !b || isNaN(a) || isNaN(b) || a <= 0 || b <= 0) {
+    priceBox.style.display = "none";
+    return;
+  }
+
+  priceBox.style.display = "block";
+  priceLoading.style.display = "none";
+  priceResult.style.display = "block";
+
+  const price = parseFloat(b) / parseFloat(a);
+  priceInfoText.innerText = `Estimasi harga: 1 ${selectedLiquidityIn?.symbol || "Token A"} = ${price.toFixed(6)} ${selectedLiquidityOut?.symbol || "Token B"}`;
 }
 
 // === Add Liquidity ===
@@ -256,31 +294,28 @@ async function addLiquidity() {
     const amtADesired = ethers.parseUnits(amountA, decA);
     const amtBDesired = ethers.parseUnits(amountB, decB);
 
-    // Approve token A
     showTxStatusModal("loading", `Meng-approve ${selectedLiquidityIn.symbol}...`);
     const tokenAContract = new ethers.Contract(selectedLiquidityIn.address, ["function approve(address,uint256) returns(bool)"], signer);
     const txA = await tokenAContract.approve(routerAddress, amtADesired);
     await txA.wait();
 
-    // Approve token B
     showTxStatusModal("loading", `Meng-approve ${selectedLiquidityOut.symbol}...`);
     const tokenBContract = new ethers.Contract(selectedLiquidityOut.address, ["function approve(address,uint256) returns(bool)"], signer);
     const txB = await tokenBContract.approve(routerAddress, amtBDesired);
     await txB.wait();
 
-    // Cek pair
     let pair = await factoryContract.getPair(selectedLiquidityIn.address, selectedLiquidityOut.address);
     if (!pair || pair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "Membuat pair baru...");
       const txCreate = await factoryContract.createPair(selectedLiquidityIn.address, selectedLiquidityOut.address);
       await txCreate.wait();
-      await new Promise(r => setTimeout(r, 3000)); // tunggu pair siap
+      await new Promise(r => setTimeout(r, 3000));
     }
 
-    // Hitung minimum token dengan slippage (default 1%)
     const slippage = getSlippage();
-    const amtAMin = amtADesired * BigInt(100 - slippage) / 100n;
-    const amtBMin = amtBDesired * BigInt(100 - slippage) / 100n;
+    const slippageFactor = BigInt(Math.floor(100 - slippage));
+    const amtAMin = (amtADesired * slippageFactor) / 100n;
+    const amtBMin = (amtBDesired * slippageFactor) / 100n;
 
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
@@ -292,7 +327,8 @@ async function addLiquidity() {
       amtBDesired,
       amtAMin,
       amtBMin,
-      userAddress
+      userAddress,
+      deadline
     );
     await txAdd.wait();
 
@@ -305,13 +341,13 @@ async function addLiquidity() {
   }
 }
 
-// === Modal Status Transaksi ===
+// === Modal ===
 function showTxStatusModal(status, title, subtitle = "", link = "") {
   const modal = document.getElementById("modalStatusTx");
   if (!modal) return;
   modal.style.display = "block";
-  modal.querySelector(".modal-title").innerText = title || "";
-  modal.querySelector(".modal-subtitle").innerText = subtitle || "";
+  modal.querySelector(".modal-title").innerText = title;
+  modal.querySelector(".modal-subtitle").innerText = subtitle;
   const linkEl = modal.querySelector(".modal-link");
   if (link) {
     linkEl.href = link;
@@ -324,12 +360,21 @@ function showTxStatusModal(status, title, subtitle = "", link = "") {
   else if (status === "success") iconEl.textContent = "✅";
   else if (status === "error") iconEl.textContent = "❌";
 }
-
 function hideTxStatusModal() {
   const modal = document.getElementById("modalStatusTx");
   if (!modal) return;
   modal.style.display = "none";
 }
 
-// === Jalankan init
+// === Account change ===
+async function handleAccountsChanged(accounts) {
+  if (accounts.length === 0) {
+    resetUI();
+  } else {
+    userAddress = accounts[0];
+    updateWalletUI();
+    updateAllBalances();
+  }
+}
+
 init();
