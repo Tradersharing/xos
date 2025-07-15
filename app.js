@@ -356,13 +356,13 @@ async function addLiquidity() {
     // [7] Eksekusi addLiquidity
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
+     userAddress,
       tokenA,
       tokenB,
       amtA,
       amtB,
       minA,
-      minB,
-      userAddress  
+      minB
     );
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     const receipt = await tx.wait();
