@@ -1,3 +1,6 @@
+// Deadline belum di tambahkan
+
+
 const decimalCache = {};
 async function getDecimals(tokenAddress) {
   if (tokenAddress === "native") return 18;
