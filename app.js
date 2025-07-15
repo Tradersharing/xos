@@ -348,10 +348,9 @@ async function addLiquidity() {
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
-    const deadline = Math.floor(Date.now() / 1000) + 600;
     console.log("📉 Slippage:", slippage + "%");
     console.log("✅ minA:", minA.toString(), "minB:", minB.toString());
-    console.log("⏱ deadline:", deadline);
+    
 
     // [7] Eksekusi addLiquidity
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
