@@ -356,7 +356,6 @@ async function addLiquidity() {
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
      userAddress,
-     userAddress,
       tokenA,
       tokenB,
       amtA,
