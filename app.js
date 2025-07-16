@@ -28,7 +28,7 @@ const XOS_PARAMS = {
 };
 
 // Contract Addresses
-const routerAddress = "0x08b154359d5e6d4c7f4c8a1f3e4a2a345fc25a4e";
+const routerAddress = "0x87fce5084d03d50236f2f3c6b23d23903d2f1e2f";
 const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a";
 
 // Minimal ABIs
@@ -263,7 +263,6 @@ async function doSwap() {
 }
 
 // === Liquidity ===
-
 
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
