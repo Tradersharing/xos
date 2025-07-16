@@ -33,9 +33,15 @@ const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a";
 
 // Minimal ABIs
 const routerAbi = [
-  "function getAmountsOut(uint,address[]) view returns(uint[])",
-  "function swapExactTokensForTokens(uint,uint,address[],address,uint) external returns(uint[])",
-  "function addLiquidity(address,address,uint256,uint256,uint256,uint256,address) returns(uint256,uint256,uint256)"
+  "function addLiquidity(address,address,uint256,uint256,uint256,uint256,address,uint256) returns (uint256,uint256,uint256)",
+  "function removeLiquidity(address,address,uint256,uint256,uint256,address,uint256) returns (uint256,uint256)",
+  "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+  "function swapTokensForExactTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+  "function getAmountsOut(uint256,address[]) view returns (uint256[])",
+  "function getAmountsIn(uint256,address[]) view returns (uint256[])",
+  "function quote(uint256,uint256,uint256) view returns (uint256)",
+  "function pairFor(address,address) view returns (address)",
+  "function factory() view returns (address)"
 ];
 
 
