@@ -269,7 +269,6 @@ async function doSwap() {
 }
 
 // === Liquidity ===
-
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -289,11 +288,13 @@ async function addLiquidity() {
   try {
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
+    const symbolA = selectedLiquidityIn.symbol;
+    const symbolB = selectedLiquidityOut.symbol;
 
     console.log("🛠 Router:", routerAddress);
     console.log("🛠 Factory:", factoryAddress);
-    console.log("🔁 Token A:", tokenA);
-    console.log("🔁 Token B:", tokenB);
+    console.log("🔁 Token A:", tokenA, `(${symbolA})`);
+    console.log("🔁 Token B:", tokenB, `(${symbolB})`);
 
     // [1] Desimal (sementara hardcoded)
     const decA = 18;
@@ -307,27 +308,29 @@ async function addLiquidity() {
     console.log("💰 Amount B:", amtB.toString());
 
     // [3] Approve Token A
-    showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityIn.symbol}...`);
+    showTxStatusModal("loading", `🔐 Approving ${symbolA}...`);
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve A sent:", txA.hash);
+    console.log(`⏳ Approve ${symbolA} TX sent:`, txA.hash);
     await txA.wait();
-    console.log("✅ Approve A confirmed");
+    console.log(`✅ Approve ${symbolA} confirmed`);
+    await new Promise(r => setTimeout(r, 1000)); // delay 1 detik
 
     // [4] Approve Token B
-    showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityOut.symbol}...`);
+    showTxStatusModal("loading", `🔐 Approving ${symbolB}...`);
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     const txB = await approveB.approve(routerAddress, amtB);
-    console.log("⏳ Approve B sent:", txB.hash);
+    console.log(`⏳ Approve ${symbolB} TX sent:`, txB.hash);
     await txB.wait();
-    console.log("✅ Approve B confirmed");
+    console.log(`✅ Approve ${symbolB} confirmed`);
+    await new Promise(r => setTimeout(r, 1000)); // delay 1 detik
 
     // [5] Cek atau Buat Pair
     let pairAddress;
     try {
       pairAddress = await factoryContract.getPair(tokenA, tokenB);
-      console.log("🔎 Pair:", pairAddress);
+      console.log("🔎 Pair Address (getPair):", pairAddress);
     } catch (e) {
       console.error("❌ getPair error:", e);
       throw new Error("❌ Gagal ambil pair dari factory");
@@ -375,13 +378,16 @@ async function addLiquidity() {
     const receipt = await tx.wait();
     console.log("🎉 Sukses TX:", receipt.transactionHash);
 
+    // [8] Tampilkan hasil dan jeda 3 detik
     showTxStatusModal(
       "success",
       "✅ Liquidity Berhasil!",
-      `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
+      `${amountADesired} ${symbolA} + ${amountBDesired} ${symbolB}`,
       `https://testnet.xoscan.io/tx/${receipt.transactionHash}`
     );
+    await new Promise(r => setTimeout(r, 3000)); // delay agar modal bisa dibaca
 
+    hideTxStatusModal();
     updateAllBalances();
 
   } catch (err) {
