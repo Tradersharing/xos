@@ -335,19 +335,41 @@ async function addLiquidity() {
       console.error("❌ getPair error:", e);
       throw new Error("❌ Gagal ambil pair dari factory");
     }
+if (!pairAddress || pairAddress === ethers.ZeroAddress) {
+  showTxStatusModal("loading", "🔨 Membuat Pair...");
+  try {
+    const createTx = await factoryContract.createPair(tokenA, tokenB);
+    console.log("⏳ Tx createPair:", createTx.hash);
+    await createTx.wait();
+    console.log("✅ Pair berhasil dibuat");
 
-    if (!pairAddress || pairAddress === ethers.ZeroAddress) {
-      showTxStatusModal("loading", "🔨 Membuat Pair...");
-      try {
-        const createTx = await factoryContract.createPair(tokenA, tokenB);
-        console.log("⏳ Tx createPair:", createTx.hash);
-        await createTx.wait();
-        console.log("✅ Pair berhasil dibuat");
-        await new Promise(r => setTimeout(r, 3000));
-      } catch (e) {
-        throw new Error("❌ Gagal membuat pair baru: " + (e.reason || e.message));
-      }
+    // 🔄 Update pairAddress setelah create
+    pairAddress = await factoryContract.getPair(tokenA, tokenB);
+    await new Promise(r => setTimeout(r, 3000));
+
+    // ✅ Inisialisasi pair manual (jika belum otomatis)
+    const pairAbi = [
+      "function initialize(address,address) external",
+      "function token0() view returns(address)",
+      "function getReserves() view returns(uint112,uint112,uint32)"
+    ];
+    const pairContract = new ethers.Contract(pairAddress, pairAbi, signer);
+
+    try {
+      const t0 = await pairContract.token0();
+      console.log("✅ Pair sudah di-initialize, token0:", t0);
+    } catch {
+      console.warn("⚠️ Pair belum initialize, mencoba initialize manual...");
+      await pairContract.initialize(tokenA, tokenB);
+      console.log("✅ Pair berhasil di-initialize manual");
     }
+
+  } catch (e) {
+    throw new Error("❌ Gagal membuat atau initialize pair baru: " + (e.reason || e.message));
+  }
+}
+
+    
 
     // [6] Slippage dan Deadline
     const slippage = getSlippage(); // misal return 1~10
