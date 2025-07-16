@@ -363,7 +363,8 @@ async function addLiquidity() {
       amtB,
       minA,
       minB,
-      userAddress
+      userAddress,
+      deadline
     );
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     const receipt = await tx.wait();
