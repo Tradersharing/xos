@@ -1,4 +1,3 @@
-// Deadline belum di tambahkan
 
 
 const decimalCache = {};
@@ -28,7 +27,7 @@ const XOS_PARAMS = {
 };
 
 // Contract Addresses
-const routerAddress = "0x29aff6a20c730915f5a79c98b7909bc1bafdef47";
+const routerAddress = "0xdd3C280065340f464983D4C467991fDe022D83C9";
 const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a";
 
 // Minimal ABIs
