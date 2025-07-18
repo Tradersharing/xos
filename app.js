@@ -266,7 +266,6 @@ async function doSwap() {
 }
 
 // === Liquidity ===
-
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -285,7 +284,7 @@ async function addLiquidity() {
   }
 
   setLiquidityLoading(true);
-  showTxStatusModal("⏳ Menyiapkan transaksi...");
+  showTxStatusModal("loading", "Menyiapkan transaksi...");
 
   try {
     const tokenA = selectedLiquidityIn.address;
@@ -298,25 +297,34 @@ async function addLiquidity() {
 
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
 
-    showTxStatusModal("✅ Approve Token A...");
+    showTxStatusModal("loading", "🔐 Approving Token A...");
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
     await txA.wait();
+    console.log("✅ Approve Token A:", txA.hash);
 
-    showTxStatusModal("✅ Approve Token B...");
+    showTxStatusModal("loading", "🔐 Approving Token B...");
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
     const txB = await approveB.approve(routerAddress, amtB);
     await txB.wait();
+    console.log("✅ Approve Token B:", txB.hash);
 
-    const pair = await factoryContract.getPair(tokenA, tokenB);
+    // Check or create pair
+    let pair = await factoryContract.getPair(tokenA, tokenB);
     if (!pair || pair === ethers.ZeroAddress) {
-      showTxStatusModal("⚙️ Membuat pair di factory...");
+      showTxStatusModal("loading", "🔧 Membuat pair baru...");
       const txCreate = await factoryContract.createPair(tokenA, tokenB);
       await txCreate.wait();
-      await new Promise(r => setTimeout(r, 4000)); // tunggu bytecode tersedia
+      console.log("✅ Pair Created:", txCreate.hash);
+      await new Promise(r => setTimeout(r, 4000)); // tunggu bytecode pair muncul
     }
 
-    const slippage = getSlippage(); // misal 2%
+    pair = await factoryContract.getPair(tokenA, tokenB);
+    if (!pair || pair === ethers.ZeroAddress) {
+      throw new Error("Pair belum tersedia setelah createPair.");
+    }
+
+    const slippage = getSlippage(); // ex: 2
     const amountAMin = amtA * BigInt(100 - slippage) / 100n;
     const amountBMin = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 60 * 15;
@@ -324,15 +332,16 @@ async function addLiquidity() {
     console.log("📦 addLiquidity params:", {
       tokenA,
       tokenB,
-      amountADesired: amtA.toString(),
-      amountBDesired: amtB.toString(),
+      amtA: amtA.toString(),
+      amtB: amtB.toString(),
       amountAMin: amountAMin.toString(),
       amountBMin: amountBMin.toString(),
       to: userAddress,
       deadline
     });
 
-    showTxStatusModal("🚀 Mengirim transaksi addLiquidity...");
+    showTxStatusModal("loading", "🚰 Menambahkan Liquidity...");
+
     const tx = await routerContract.addLiquidity(
       tokenA,
       tokenB,
@@ -344,26 +353,22 @@ async function addLiquidity() {
       deadline
     );
 
-    showTxStatusModal("⏳ Menunggu konfirmasi...");
-    document.getElementById("txExplorerLink").href = `${blockExplorerBaseURL}/tx/${tx.hash}`;
-    document.getElementById("txExplorerLink").style.display = "inline-block";
-
+    showTxStatusModal("loading", "⏳ Menunggu konfirmasi transaksi...", "", `https://xosscan.xyz/tx/${tx.hash}`);
     const receipt = await tx.wait();
-    console.log("✅ TX mined:", receipt.transactionHash);
 
-    showTxStatusModal("✅ Liquidity berhasil!");
+    console.log("✅ TX mined:", receipt.transactionHash);
+    showTxStatusModal("success", "✅ Liquidity berhasil ditambahkan!", "", `https://xosscan.xyz/tx/${tx.hash}`);
     updateAllBalances();
 
   } catch (err) {
     console.error("❌ ERROR addLiquidity():", err);
     const reason = err?.reason || err?.error?.message || err?.message || "Unknown error";
-    showTxStatusModal("❌ Gagal Add Liquidity:\n" + reason);
+    showTxStatusModal("error", "❌ Gagal Add Liquidity:\n" + reason);
+    alert("❌ Gagal Add Liquidity:\n" + reason);
   } finally {
     setLiquidityLoading(false);
   }
 }
-
-
 
 
 // === Fungsi Loading ===
