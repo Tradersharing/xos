@@ -333,11 +333,14 @@ async function addLiquidity() {
     alert("✅ Likuiditas berhasil ditambahkan!");
     document.getElementById("liquidityAmountA").value = "";
     document.getElementById("liquidityAmountB").value = "";
-  } catch (error) {
-    console.error("❌ Gagal addLiquidity:", error);
-    alert("❌ Gagal menambahkan likuiditas.");
-  }
+
+} catch (error) {
+  console.error("❌ Gagal addLiquidity:", error);  // LOG DETAIL
+  alert(`❌ Gagal menambahkan likuiditas.\n${error?.reason || error?.message || 'Unknown error'}`);
 }
+
+
+      }
 
 
 // === Fungsi Loading ===
