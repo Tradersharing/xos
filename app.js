@@ -266,7 +266,6 @@ async function doSwap() {
 }
 
 // === Liquidity ===
-
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -274,50 +273,64 @@ async function addLiquidity() {
   if (selectedLiquidityIn.address === selectedLiquidityOut.address)
     return alert("❗ Token A dan B harus berbeda.");
 
+  const tokenAAddress = selectedLiquidityIn.address;
+  const tokenBAddress = selectedLiquidityOut.address;
+
+  if (!tokenAAddress || !tokenBAddress) {
+    alert("❌ Mohon pilih 2 token terlebih dahulu.");
+    return;
+  }
+
+  console.log("✅ Token A:", tokenAAddress);
+  console.log("✅ Token B:", tokenBAddress);
+
   const amountAInput = document.getElementById("liquidityAmountA").value;
   const amountBInput = document.getElementById("liquidityAmountB").value;
-  if (!amountAInput || !amountBInput) return alert("❗ Masukkan jumlah token.");
+
+  if (!amountAInput || !amountBInput) {
+    alert("❗ Masukkan jumlah token A dan B.");
+    return;
+  }
+
+  const decimalsA = await getDecimals(tokenAAddress);
+  const decimalsB = await getDecimals(tokenBAddress);
+
+  const amountADesired = ethers.parseUnits(amountAInput, decimalsA);
+  const amountBDesired = ethers.parseUnits(amountBInput, decimalsB);
+
+  const slippage = getSlippage();
+  console.log("📉 Slippage %:", slippage);
+
+  const amountAMin = amountADesired * BigInt((100n - BigInt(slippage)) / 100n);
+  const amountBMin = amountBDesired * BigInt((100n - BigInt(slippage)) / 100n);
+
+  const deadline = Math.floor(Date.now() / 1000) + 60 * 10; // 10 menit
+
+  const tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
+  const tokenBContract = new ethers.Contract(tokenBAddress, erc20Abi, signer);
+
+  const allowanceA = await tokenAContract.allowance(userAddress, routerAddress);
+  const allowanceB = await tokenBContract.allowance(userAddress, routerAddress);
+
+  if (allowanceA < amountADesired) {
+    console.log("🔁 Approve token A");
+    const txA = await tokenAContract.approve(routerAddress, amountADesired);
+    await txA.wait();
+  }
+
+  if (allowanceB < amountBDesired) {
+    console.log("🔁 Approve token B");
+    const txB = await tokenBContract.approve(routerAddress, amountBDesired);
+    await txB.wait();
+  }
+
+  const routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
 
   try {
-    const amountADesired = ethers.parseUnits(amountAInput, selectedLiquidityIn.decimals);
-    const amountBDesired = ethers.parseUnits(amountBInput, selectedLiquidityOut.decimals);
-    const amountAMin = amountADesired;
-    const amountBMin = amountBDesired;
-
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
-
-    const routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
-    const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
-
-    const allowanceA = await selectedLiquidityIn.contract.allowance(userAddress, routerAddress);
-    const allowanceB = await selectedLiquidityOut.contract.allowance(userAddress, routerAddress);
-
-    if (allowanceA < amountADesired) {
-      const txApproveA = await selectedLiquidityIn.contract.connect(signer).approve(routerAddress, amountADesired);
-      console.log("🔄 Approve Token A...");
-      await txApproveA.wait();
-    }
-
-    if (allowanceB < amountBDesired) {
-      const txApproveB = await selectedLiquidityOut.contract.connect(signer).approve(routerAddress, amountBDesired);
-      console.log("🔄 Approve Token B...");
-      await txApproveB.wait();
-    }
-
-    console.log("🧠 Calling addLiquidity with args:", {
-      tokenA: selectedLiquidityIn.address,
-      tokenB: selectedLiquidityOut.address,
-      amountADesired: amountADesired.toString(),
-      amountBDesired: amountBDesired.toString(),
-      amountAMin: amountAMin.toString(),
-      amountBMin: amountBMin.toString(),
-      to: userAddress,
-      deadline,
-    });
-
+    console.log("🚀 Menambahkan likuiditas...");
     const tx = await routerContract.addLiquidity(
-      selectedLiquidityIn.address,
-      selectedLiquidityOut.address,
+      tokenAAddress,
+      tokenBAddress,
       amountADesired,
       amountBDesired,
       amountAMin,
@@ -325,22 +338,14 @@ async function addLiquidity() {
       userAddress,
       deadline
     );
-
-    console.log("🚀 addLiquidity tx sent:", tx.hash);
+    console.log("⏳ Tx sent:", tx.hash);
     await tx.wait();
-    console.log("✅ addLiquidity sukses!");
-
     alert("✅ Likuiditas berhasil ditambahkan!");
-    document.getElementById("liquidityAmountA").value = "";
-    document.getElementById("liquidityAmountB").value = "";
-
-} catch (error) {
-  console.error("❌ Gagal addLiquidity:", error);  // LOG DETAIL
-  alert(`❌ Gagal menambahkan likuiditas.\n${error?.reason || error?.message || 'Unknown error'}`);
+  } catch (error) {
+    console.error("❌ Gagal addLiquidity:", error);
+    alert(`❌ Gagal menambahkan likuiditas.\n${error?.reason || error?.message || 'Unknown error'}`);
+  }
 }
-
-
-      }
 
 
 // === Fungsi Loading ===
