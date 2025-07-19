@@ -274,68 +274,71 @@ async function addLiquidity() {
   if (selectedLiquidityIn.address === selectedLiquidityOut.address)
     return alert("❗ Token A dan B harus berbeda.");
 
-  const amountADesired = document.getElementById("liquidityAmountA").value;
-  const amountBDesired = document.getElementById("liquidityAmountB").value;
-  if (!amountADesired || !amountBDesired) return alert("❗ Jumlah token tidak valid.");
+  const amountAInput = document.getElementById("liquidityAmountA").value;
+  const amountBInput = document.getElementById("liquidityAmountB").value;
+  if (!amountAInput || !amountBInput) return alert("❗ Masukkan jumlah token.");
 
   try {
-    const tokenA = selectedLiquidityIn.address;
-    const tokenB = selectedLiquidityOut.address;
+    const amountADesired = ethers.parseUnits(amountAInput, selectedLiquidityIn.decimals);
+    const amountBDesired = ethers.parseUnits(amountBInput, selectedLiquidityOut.decimals);
+    const amountAMin = amountADesired;
+    const amountBMin = amountBDesired;
 
-    const decimalsA = await selectedLiquidityIn.contract.decimals();
-    const decimalsB = await selectedLiquidityOut.contract.decimals();
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
 
-    const amountA = ethers.parseUnits(amountADesired, decimalsA);
-    const amountB = ethers.parseUnits(amountBDesired, decimalsB);
-
-    const amountAMin = amountA * 90n / 100n;
-    const amountBMin = amountB * 90n / 100n;
-
-    const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 menit dari sekarang
-
-    console.log("🧪 [addLiquidity()] tokenA:", tokenA);
-    console.log("🧪 [addLiquidity()] tokenB:", tokenB);
-    console.log("🧪 [addLiquidity()] amountA (parsed):", amountA.toString());
-    console.log("🧪 [addLiquidity()] amountB (parsed):", amountB.toString());
-    console.log("🧪 [addLiquidity()] deadline:", deadline);
+    const routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+    const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
 
     const allowanceA = await selectedLiquidityIn.contract.allowance(userAddress, routerAddress);
     const allowanceB = await selectedLiquidityOut.contract.allowance(userAddress, routerAddress);
 
-    if (allowanceA < amountA) {
-      console.log("🛂 Approving token A...");
-      const txA = await selectedLiquidityIn.contract.approve(routerAddress, amountA);
-      await txA.wait();
+    if (allowanceA < amountADesired) {
+      const txApproveA = await selectedLiquidityIn.contract.connect(signer).approve(routerAddress, amountADesired);
+      console.log("🔄 Approve Token A...");
+      await txApproveA.wait();
     }
 
-    if (allowanceB < amountB) {
-      console.log("🛂 Approving token B...");
-      const txB = await selectedLiquidityOut.contract.approve(routerAddress, amountB);
-      await txB.wait();
+    if (allowanceB < amountBDesired) {
+      const txApproveB = await selectedLiquidityOut.contract.connect(signer).approve(routerAddress, amountBDesired);
+      console.log("🔄 Approve Token B...");
+      await txApproveB.wait();
     }
+
+    console.log("🧠 Calling addLiquidity with args:", {
+      tokenA: selectedLiquidityIn.address,
+      tokenB: selectedLiquidityOut.address,
+      amountADesired: amountADesired.toString(),
+      amountBDesired: amountBDesired.toString(),
+      amountAMin: amountAMin.toString(),
+      amountBMin: amountBMin.toString(),
+      to: userAddress,
+      deadline,
+    });
 
     const tx = await routerContract.addLiquidity(
-      tokenA,
-      tokenB,
-      amountA,
-      amountB,
+      selectedLiquidityIn.address,
+      selectedLiquidityOut.address,
+      amountADesired,
+      amountBDesired,
       amountAMin,
       amountBMin,
       userAddress,
       deadline
     );
 
-    console.log("⏳ addLiquidity tx sent:", tx.hash);
+    console.log("🚀 addLiquidity tx sent:", tx.hash);
     await tx.wait();
-    console.log("✅ Liquidity added successfully.");
-    alert("✅ Liquidity berhasil ditambahkan.");
+    console.log("✅ addLiquidity sukses!");
+
+    alert("✅ Likuiditas berhasil ditambahkan!");
+    document.getElementById("liquidityAmountA").value = "";
+    document.getElementById("liquidityAmountB").value = "";
   } catch (error) {
     console.error("❌ Gagal addLiquidity:", error);
-    alert("❌ Gagal addLiquidity. Lihat console untuk detail.");
+    alert("❌ Gagal menambahkan likuiditas.");
   }
 }
 
-      
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
