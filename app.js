@@ -266,86 +266,128 @@ async function doSwap() {
 }
 
 // === Liquidity ===
+
+
 async function addLiquidity() {
+  // 1. Validasi awal
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
     return alert("❗ Pilih token A dan B untuk liquidity.");
   if (selectedLiquidityIn.address === selectedLiquidityOut.address)
     return alert("❗ Token A dan B harus berbeda.");
 
-  const tokenAAddress = selectedLiquidityIn.address;
-  const tokenBAddress = selectedLiquidityOut.address;
-
-  if (!tokenAAddress || !tokenBAddress) {
-    alert("❌ Mohon pilih 2 token terlebih dahulu.");
-    return;
-  }
-
-  console.log("✅ Token A:", tokenAAddress);
-  console.log("✅ Token B:", tokenBAddress);
-
+  const tokenA = selectedLiquidityIn.address;
+  const tokenB = selectedLiquidityOut.address;
   const amountAInput = document.getElementById("liquidityAmountA").value;
   const amountBInput = document.getElementById("liquidityAmountB").value;
+  if (!amountAInput || !amountBInput || isNaN(amountAInput) || isNaN(amountBInput))
+    return alert("⚠️ Jumlah tidak valid.");
 
-  if (!amountAInput || !amountBInput) {
-    alert("❗ Masukkan jumlah token A dan B.");
-    return;
-  }
-
-  const decimalsA = await getDecimals(tokenAAddress);
-  const decimalsB = await getDecimals(tokenBAddress);
-
-  const amountADesired = ethers.parseUnits(amountAInput, decimalsA);
-  const amountBDesired = ethers.parseUnits(amountBInput, decimalsB);
-
-  const slippage = getSlippage();
-  console.log("📉 Slippage %:", slippage);
-
-  const amountAMin = amountADesired * BigInt((100n - BigInt(slippage)) / 100n);
-  const amountBMin = amountBDesired * BigInt((100n - BigInt(slippage)) / 100n);
-
-  const deadline = Math.floor(Date.now() / 1000) + 60 * 10; // 10 menit
-
-  const tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
-  const tokenBContract = new ethers.Contract(tokenBAddress, erc20Abi, signer);
-
-  const allowanceA = await tokenAContract.allowance(userAddress, routerAddress);
-  const allowanceB = await tokenBContract.allowance(userAddress, routerAddress);
-
-  if (allowanceA < amountADesired) {
-    console.log("🔁 Approve token A");
-    const txA = await tokenAContract.approve(routerAddress, amountADesired);
-    await txA.wait();
-  }
-
-  if (allowanceB < amountBDesired) {
-    console.log("🔁 Approve token B");
-    const txB = await tokenBContract.approve(routerAddress, amountBDesired);
-    await txB.wait();
-  }
-
-  const routerContract = new ethers.Contract(routerAddress, routerAbi, signer);
+  // 2. Disable tombol & tampilkan modal loading
+  setLiquidityLoading(true);
+  showTxStatusModal("loading", "⏳ Menyiapkan transaksi...");
 
   try {
-    console.log("🚀 Menambahkan likuiditas...");
+    // 3. Hitung desimal & parse units
+    const decA = selectedLiquidityIn.decimals || 18;
+    const decB = selectedLiquidityOut.decimals || 18;
+    const amtA = ethers.parseUnits(amountAInput, decA);
+    const amtB = ethers.parseUnits(amountBInput, decB);
+
+    // 4. Slippage & deadline
+    const slip = getSlippage(); // misal 1 = 1%
+    const minA = amtA * BigInt(100 - slip) / 100n;
+    const minB = amtB * BigInt(100 - slip) / 100n;
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10);
+
+    // 5. Log detail ke console & modal
+    const logInfo = `
+🧾 Detail Add Liquidity:
+Token A: ${selectedLiquidityIn.symbol} (${tokenA})
+Token B: ${selectedLiquidityOut.symbol} (${tokenB})
+amountADesired: ${amtA.toString()}
+amountBDesired: ${amtB.toString()}
+amountAMin: ${minA.toString()}
+amountBMin: ${minB.toString()}
+deadline: ${deadline}
+    `;
+    console.log(logInfo);
+    showTxStatusModal("loading", logInfo);
+    await new Promise(r => setTimeout(r, 1200));
+
+    // 6. Setup contract instances
+    const tokenAbi = ["function approve(address,uint256) returns (bool)"];
+    const tokenAContract = new ethers.Contract(tokenA, tokenAbi, signer);
+    const tokenBContract = new ethers.Contract(tokenB, tokenAbi, signer);
+    const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, signer);
+    const routerContract  = new ethers.Contract(routerAddress, routerAbi, signer);
+
+    // 7. Approve A & B jika perlu
+    const allowanceA = await tokenAContract.allowance(userAddress, routerAddress);
+    if (allowanceA < amtA) {
+      showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityIn.symbol}...`);
+      const txA = await tokenAContract.approve(routerAddress, amtA);
+      await txA.wait();
+    }
+    const allowanceB = await tokenBContract.allowance(userAddress, routerAddress);
+    if (allowanceB < amtB) {
+      showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityOut.symbol}...`);
+      const txB = await tokenBContract.approve(routerAddress, amtB);
+      await txB.wait();
+    }
+
+    // 8. Cek/create pair via factory
+    showTxStatusModal("loading", "🔍 Memeriksa pair...");
+    let pair = await factoryContract.getPair(tokenA, tokenB);
+    if (!pair || pair === ethers.ZeroAddress) {
+      showTxStatusModal("loading", "🔨 Membuat pair baru...");
+      const txCreate = await factoryContract.createPair(tokenA, tokenB);
+      await txCreate.wait();
+      // tunggu indexed event
+      await new Promise(r => setTimeout(r, 3000));
+      pair = await factoryContract.getPair(tokenA, tokenB);
+      if (!pair || pair === ethers.ZeroAddress) {
+        throw new Error("❌ Gagal membuat pair baru.");
+      }
+    }
+
+    // 9. Panggil addLiquidity di Router
+    showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
-      tokenAAddress,
-      tokenBAddress,
-      amountADesired,
-      amountBDesired,
-      amountAMin,
-      amountBMin,
+      tokenA,
+      tokenB,
+      amtA,
+      amtB,
+      minA,
+      minB,
       userAddress,
       deadline
     );
-    console.log("⏳ Tx sent:", tx.hash);
-    await tx.wait();
-    alert("✅ Likuiditas berhasil ditambahkan!");
-  } catch (error) {
-    console.error("❌ Gagal addLiquidity:", error);
-    alert(`❌ Gagal menambahkan likuiditas.\n${error?.reason || error?.message || 'Unknown error'}`);
+    console.log("⏳ addLiquidity tx sent:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("🎉 Sukses addLiquidity TX:", receipt);
+
+    showTxStatusModal(
+      "success",
+      "✅ Liquidity Berhasil!",
+      `${amountAInput} ${selectedLiquidityIn.symbol} + ${amountBInput} ${selectedLiquidityOut.symbol}`,
+      `https://testnet.xoscan.io/tx/${receipt.transactionHash || receipt.hash}`
+    );
+
+    // 10. Refresh balance & reset input
+    updateAllBalances();
+    document.getElementById("liquidityAmountA").value = "";
+    document.getElementById("liquidityAmountB").value = "";
+
+  } catch (err) {
+    console.error("❌ Gagal addLiquidity:", err);
+    alert(`❌ Gagal menambahkan likuiditas.\n${err?.reason || err?.message || 'Unknown error'}`);
+  } finally {
+    // 11. Enable tombol lagi
+    setLiquidityLoading(false);
   }
 }
+
 
 
 // === Fungsi Loading ===
