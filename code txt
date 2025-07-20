@@ -92,6 +92,7 @@ contract TradersharingPair is ERC20Minimal {
     address public token0;
     address public token1;
     address public factory;
+    address public router; // ✅ Tambahan baru
 
     uint112 private reserve0;
     uint112 private reserve1;
@@ -101,6 +102,12 @@ contract TradersharingPair is ERC20Minimal {
 
     constructor() ERC20Minimal("Tradersharing LP Token","TS-LP") {
         factory = msg.sender;
+    }
+
+    function setRouter(address _router) external { // ✅ Tambahan baru
+        require(msg.sender == factory, "Only factory can set router");
+        require(router == address(0), "Router already set");
+        router = _router;
     }
 
     function initialize(address _tokenA,address _tokenB) external {
@@ -120,7 +127,7 @@ contract TradersharingPair is ERC20Minimal {
     }
 
     function mint(address to) external returns (uint liquidity) {
-        require(msg.sender == factory,"Only factory");
+        require(msg.sender == factory || msg.sender == router, "Only factory or router"); // ✅
         uint balance0 = IERC20Minimal(token0).balanceOf(address(this));
         uint balance1 = IERC20Minimal(token1).balanceOf(address(this));
         uint amount0 = balance0 - reserve0;
@@ -139,7 +146,7 @@ contract TradersharingPair is ERC20Minimal {
     }
 
     function burn(address to) external returns (uint amount0,uint amount1) {
-        require(msg.sender == factory,"Only factory");
+        require(msg.sender == factory || msg.sender == router, "Only factory or router"); // ✅
         uint liquidity = balanceOf(address(this));
         uint _totalSupply = totalSupply;
 
@@ -162,7 +169,7 @@ contract TradersharingPair is ERC20Minimal {
     }
 
     function swap(uint amount0Out,uint amount1Out,address to) external {
-        require(msg.sender == factory,"Only factory");
+        require(msg.sender == factory || msg.sender == router, "Only factory or router"); // ✅
         require(amount0Out > 0 || amount1Out > 0,"Insufficient output");
 
         (uint112 _reserve0,uint112 _reserve1) = (reserve0,reserve1);
@@ -194,6 +201,7 @@ contract TradersharingPair is ERC20Minimal {
         }
     }
 }
+
 
 contract Tradersharingfactory {
     mapping(address => mapping(address => address)) public getPair;
