@@ -271,51 +271,51 @@ async function doSwap() {
 }
 
 // === Liquidity ===
+
 async function addLiquidity() {
   try {
     console.log("🟡 Memulai addLiquidity()");
+    setLiquidityLoading(true);
+    showTxStatusModal("loading", "🔄 Menyiapkan transaksi...");
 
-    if (!userAddress) return alert("❌ Connect wallet dulu.");
-    if (!selectedLiquidityIn || !selectedLiquidityOut)
+    if (!userAddress) {
+      hideTxStatusModal();
+      return alert("❌ Connect wallet dulu.");
+    }
+    if (!selectedLiquidityIn || !selectedLiquidityOut) {
+      hideTxStatusModal();
       return alert("❗ Pilih token A dan B untuk liquidity.");
-    if (selectedLiquidityIn.address === selectedLiquidityOut.address)
+    }
+    if (selectedLiquidityIn.address === selectedLiquidityOut.address) {
+      hideTxStatusModal();
       return alert("❗ Token A dan B harus berbeda.");
+    }
 
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
-    const amountADesired = ethers.parseUnits(
-      document.getElementById("liquidityAmountA").value || "0",
-      selectedLiquidityIn.decimals
-    );
-    const amountBDesired = ethers.parseUnits(
-      document.getElementById("liquidityAmountB").value || "0",
-      selectedLiquidityOut.decimals
-    );
+    const amountA = document.getElementById("liquidityAmountA").value || "0";
+    const amountB = document.getElementById("liquidityAmountB").value || "0";
 
-    console.log("📥 Token A:", tokenA);
-    console.log("📥 Token B:", tokenB);
-    console.log("📊 Amount A:", amountADesired.toString());
-    console.log("📊 Amount B:", amountBDesired.toString());
-
+    const amountADesired = ethers.parseUnits(amountA, selectedLiquidityIn.decimals);
+    const amountBDesired = ethers.parseUnits(amountB, selectedLiquidityOut.decimals);
     const amountAMin = amountADesired * 90n / 100n;
     const amountBMin = amountBDesired * 90n / 100n;
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200); // 20 menit dari sekarang
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
     const tokenAContract = new ethers.Contract(tokenA, ERC20_ABI, signer);
     const tokenBContract = new ethers.Contract(tokenB, ERC20_ABI, signer);
 
-    console.log("🪙 Approving token A...");
+    showTxStatusModal("loading", "🪙 Approving token A...");
     const approveA = await tokenAContract.approve(routerAddress, amountADesired);
     await approveA.wait();
-    console.log("✅ Approved token A");
+    console.log("✅ Token A approved");
 
-    console.log("🪙 Approving token B...");
+    showTxStatusModal("loading", "🪙 Approving token B...");
     const approveB = await tokenBContract.approve(routerAddress, amountBDesired);
     await approveB.wait();
-    console.log("✅ Approved token B");
+    console.log("✅ Token B approved");
 
-    console.log("🔁 Calling addLiquidity...");
-
+    showTxStatusModal("loading", "🚀 Mengirim transaksi addLiquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA,
       tokenB,
@@ -326,18 +326,22 @@ async function addLiquidity() {
       userAddress,
       deadline
     );
-
     console.log("📤 Tx sent:", tx.hash);
-    await tx.wait();
-    console.log("✅ Liquidity added!");
-    alert("✅ Liquidity berhasil ditambahkan!");
 
+    showTxStatusModal("loading", "⏳ Menunggu konfirmasi transaksi...", "", `https://explorer.okex.com/tx/${tx.hash}`);
+    await tx.wait();
+
+    console.log("✅ Liquidity berhasil ditambahkan!");
+    showTxStatusModal("success", "✅ Liquidity berhasil ditambahkan!", `${amountA} ${selectedLiquidityIn.symbol} + ${amountB} ${selectedLiquidityOut.symbol}`, `https://explorer.okex.com/tx/${tx.hash}`);
+    updateAllBalances();
   } catch (err) {
     console.error("❌ Gagal addLiquidity:", err);
-    alert("❌ Gagal menambahkan liquidity:\n" + (err?.message || err));
+    showTxStatusModal("error", "❌ Gagal menambahkan liquidity", "", "");
+    alert("❌ Gagal:\n" + (err?.reason || err?.message || err));
+  } finally {
+    setLiquidityLoading(false);
   }
 }
-
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
