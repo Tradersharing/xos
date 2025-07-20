@@ -341,26 +341,47 @@ if (tokenA > tokenB) {
     console.log("🔗 Pair Address dari getPair:", existingPair);
 
     // Buat Pair Jika Belum Ada
-    const zeroAddr = "0x0000000000000000000000000000000000000000";
-    if (!existingPair || existingPair.toLowerCase() === zeroAddr) {
-      showTxStatusModal("loading", "🔨 Membuat Pair...");
+// 🔎 Debug pair existence
+const zeroAddr = "0x0000000000000000000000000000000000000000";
+let existingPair;
 
-      try {
-        const createTx = await factoryContract.createPair(tokenA, tokenB);
-        console.log("⏳ Tx Create Pair:", createTx.hash);
-        await createTx.wait();
-        console.log("✅ Pair berhasil dibuat");
-        await new Promise(r => setTimeout(r, 3000)); // beri delay agar jaringan update
-      } catch (e) {
-        throw new Error("Gagal membuat pair. Mungkin pair sudah ada.\n" + (e.reason || e.message));
-      }
+try {
+  existingPair = await factoryContract.getPair(tokenA, tokenB);
+  console.log("🔗 Hasil getPair():", existingPair);
+} catch (getPairErr) {
+  console.error("❌ Gagal memanggil getPair():", getPairErr);
+  throw new Error("Gagal memanggil getPair(). Pastikan factory address dan ABI benar.");
+}
 
-      // Cek ulang pair baru
-      existingPair = await factoryContract.getPair(tokenA, tokenB);
-      if (!existingPair || existingPair.toLowerCase() === zeroAddr) {
-        throw new Error("Pair tetap tidak ditemukan setelah createPair.");
-      }
-    }
+if (!existingPair || existingPair.toLowerCase() === zeroAddr) {
+  console.log("🚫 Pair belum ada, mencoba createPair()...");
+
+  try {
+    const createTx = await factoryContract.createPair(tokenA, tokenB);
+    console.log("⏳ Tx Create Pair:", createTx.hash);
+    await createTx.wait();
+    console.log("✅ Pair berhasil dibuat.");
+    await new Promise(r => setTimeout(r, 3000)); // beri waktu jaringan update
+  } catch (e) {
+    console.error("❌ Gagal createPair:", e);
+    throw new Error("Gagal membuat pair. Mungkin pair sudah ada atau ada kesalahan kontrak.\n" + (e.reason || e.message));
+  }
+
+  // Cek ulang setelah create
+  try {
+    existingPair = await factoryContract.getPair(tokenA, tokenB);
+    console.log("🔁 Pair setelah create:", existingPair);
+  } catch (err) {
+    console.error("❌ Gagal getPair ulang setelah create:", err);
+    throw new Error("Gagal ambil ulang pair setelah create.");
+  }
+
+  if (!existingPair || existingPair.toLowerCase() === zeroAddr) {
+    throw new Error("❌ Pair tetap tidak ditemukan setelah createPair.");
+  }
+} else {
+  console.log("✅ Pair sudah ada:", existingPair);
+}
 
     // Hitung Min Amounts dengan Slippage
     const slippage = getSlippage();
