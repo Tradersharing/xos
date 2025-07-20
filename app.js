@@ -333,16 +333,28 @@ async function addLiquidity() {
     // Cek Pair
     showTxStatusModal("loading", "🔍 Mengecek Pair...");
     let existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("🔗 Pair Address:", existingPair);
+    console.log("🔗 Pair Address dari getPair:", existingPair);
 
     // Buat Pair Jika Belum Ada
-    if (!existingPair || existingPair === ethers.ZeroAddress) {
+    const zeroAddr = "0x0000000000000000000000000000000000000000";
+    if (!existingPair || existingPair.toLowerCase() === zeroAddr) {
       showTxStatusModal("loading", "🔨 Membuat Pair...");
-      const createTx = await factoryContract.createPair(tokenA, tokenB);
-      console.log("⏳ Tx Create Pair:", createTx.hash);
-      await createTx.wait();
-      console.log("✅ Pair berhasil dibuat");
-      await new Promise(r => setTimeout(r, 3000));
+
+      try {
+        const createTx = await factoryContract.createPair(tokenA, tokenB);
+        console.log("⏳ Tx Create Pair:", createTx.hash);
+        await createTx.wait();
+        console.log("✅ Pair berhasil dibuat");
+        await new Promise(r => setTimeout(r, 3000)); // beri delay agar jaringan update
+      } catch (e) {
+        throw new Error("Gagal membuat pair. Mungkin pair sudah ada.\n" + (e.reason || e.message));
+      }
+
+      // Cek ulang pair baru
+      existingPair = await factoryContract.getPair(tokenA, tokenB);
+      if (!existingPair || existingPair.toLowerCase() === zeroAddr) {
+        throw new Error("Pair tetap tidak ditemukan setelah createPair.");
+      }
     }
 
     // Hitung Min Amounts dengan Slippage
