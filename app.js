@@ -266,6 +266,10 @@ async function doSwap() {
 }
 
 // === Liquidity ===
+
+
+
+
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Wallet belum terhubung.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -285,7 +289,8 @@ async function addLiquidity() {
 
   const tokenA = selectedLiquidityIn.address;
   const tokenB = selectedLiquidityOut.address;
-
+if (tokenA > tokenB) {
+  [tokenA, tokenB] = [tokenB, tokenA];
   console.log("🔁 Token A:", selectedLiquidityIn.symbol, tokenA);
   console.log("🔁 Token B:", selectedLiquidityOut.symbol, tokenB);
 
