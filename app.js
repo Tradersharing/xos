@@ -25,7 +25,7 @@ const XOS_PARAMS = {
 };
 
 // Contract Addresses
-const routerAddress = "0xdd3C280065340f464983D4C467991fDe022D83C9";
+const routerAddress = "0x85f6b12C11AE8D6ee6cFABBf3bB7bd17D3C6A386";
 const factoryAddress = "0xc5a5febb72028eb2b2c7410473f77582f7deb90a";
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
