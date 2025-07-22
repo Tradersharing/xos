@@ -372,6 +372,14 @@ async function updateAllBalances() {
     if (el) el.innerText = `Balance: ${bal}`;
   }
 }
+function showTxModal(txHash) {
+  const explorerUrl = "https://explorer.xoscan.testnet/tx/" + txHash;
+  const modal = document.getElementById("txModal");
+  const link = document.getElementById("txExplorerLink");
+  if (link) link.href = explorerUrl;
+  if (modal) modal.style.display = "block";
+  console.log("🔗 Explorer:", explorerUrl);
+}
 
 function showTxStatusModal(status = "loading", message = "Submitting...", token = "", explorerUrl = "") {
   const modal = document.getElementById("txStatusModal");
