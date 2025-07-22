@@ -400,7 +400,12 @@ async function addLiquidity() {
   }
 }
 
-
+// === Fungsi Loading ===
+function setLiquidityLoading(state) {
+  const el = document.getElementById("liquidityLoading");
+  el.style.display = state ? "block" : "none";
+  el.textContent = state ? "⏳ Memproses transaksi..." : "";
+}
 // === Update Balances ===
 async function updateAllBalances() {
   for (const tok of tokenList) {
