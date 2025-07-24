@@ -275,143 +275,97 @@ async function doSwap() {
 
 
 async function addLiquidity() {
-  if (!userAddress) return alert("❌ Connect wallet dulu.");
-  if (!selectedLiquidityIn || !selectedLiquidityOut)
-    return alert("❗ Pilih token A dan B untuk liquidity.");
-  if (selectedLiquidityIn.address === selectedLiquidityOut.address)
-    return alert("❗ Token A dan B harus berbeda.");
-
-  const amountADesired = document.getElementById("liquidityAmountA").value;
-  const amountBDesired = document.getElementById("liquidityAmountB").value;
-  if (!amountADesired || !amountBDesired || isNaN(amountADesired) || isNaN(amountBDesired)) {
-    return alert("⚠️ Jumlah tidak valid.");
-  }
-
-  setLiquidityLoading(true);
-  showTxStatusModal("loading", "⏳ Menyiapkan transaksi...");
-
   try {
+    console.log("🟡 Memulai addLiquidity()");
+
+    if (!userAddress) return alert("❌ Connect wallet dulu.");
+    if (!selectedLiquidityIn || !selectedLiquidityOut)
+      return alert("❗ Pilih token A dan B untuk liquidity.");
+    if (selectedLiquidityIn.address === selectedLiquidityOut.address)
+      return alert("❗ Token A dan B harus berbeda.");
+
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
 
-    console.log("🛠 Router:", routerAddress);
-    console.log("🛠 Factory:", factoryAddress);
-    console.log("🔁 Token A:", tokenA);
-    console.log("🔁 Token B:", tokenB);
+    const amountAInput = document.getElementById("liquidityAmountA").value || "0";
+    const amountBInput = document.getElementById("liquidityAmountB").value || "0";
 
-    // === [1] Ambil desimal token ===
-    const decA = 18; // sementara manual biar fokus error lain
-    const decB = 18;
-    console.log("🔢 Desimal Token A:", decA);
-    console.log("🔢 Desimal Token B:", decB);
+    const amountADesired = ethers.parseUnits(amountAInput, selectedLiquidityIn.decimals);
+    const amountBDesired = ethers.parseUnits(amountBInput, selectedLiquidityOut.decimals);
 
-    // === [2] Parse ke BigNumber ===
-    const amtA = ethers.parseUnits(amountADesired, decA);
-    const amtB = ethers.parseUnits(amountBDesired, decB);
-    console.log("💰 Amount A:", amtA.toString());
-    console.log("💰 Amount B:", amtB.toString());
+    console.log("📥 Token A:", tokenA, selectedLiquidityIn.symbol);
+    console.log("📥 Token B:", tokenB, selectedLiquidityOut.symbol);
+    console.log("💰 Input A:", amountAInput, "=>", amountADesired.toString());
+    console.log("💰 Input B:", amountBInput, "=>", amountBDesired.toString());
 
-    // === [3] Approve Token A ===
-    showTxStatusModal("loading", "🔐 Approving Token A...");
-    const tokenAbi = ["function approve(address,uint256) returns (bool)"];
-    const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
-    const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve Token A Tx Sent:", txA.hash);
-    await txA.wait();
-    console.log("✅ Approve Token A Confirmed");
+    const slippage = getSlippage();
+    const amountAMin = (amountADesired * (100n - BigInt(slippage))) / 100n;
+    const amountBMin = (amountBDesired * (100n - BigInt(slippage))) / 100n;
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200); // 20 menit
 
-    // === [4] Approve Token B ===
-    showTxStatusModal("loading", "🔐 Approving Token B...");
-    const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
-    const txB = await approveB.approve(routerAddress, amtB);
-    console.log("⏳ Approve Token B Tx Sent:", txB.hash);
-    await txB.wait();
-    console.log("✅ Approve Token B Confirmed");
+    console.log("⚙️ Slippage:", slippage, "%");
+    console.log("⚙️ Min A:", amountAMin.toString());
+    console.log("⚙️ Min B:", amountBMin.toString());
+    console.log("⏰ Deadline:", deadline.toString());
 
-    // === [5] Cek & Buat Pair ===
-    console.log("🔍 Cek apakah pair sudah ada...");
-    const existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("🔍 Pair ditemukan:", existingPair);
+    const tokenAContract = new ethers.Contract(tokenA, ERC20_ABI, signer);
+    const tokenBContract = new ethers.Contract(tokenB, ERC20_ABI, signer);
 
-    if (!existingPair || existingPair === ethers.ZeroAddress) {
-      showTxStatusModal("loading", "🔨 Membuat pair baru...");
-      const createTx = await factoryContract.createPair(tokenA, tokenB);
-      console.log("⏳ Create Pair Tx Sent:", createTx.hash);
-      await createTx.wait();
-      console.log("✅ Pair berhasil dibuat");
-      await new Promise(r => setTimeout(r, 4000));
+    showTxModal();
+    textTxModal("🪙 Approving " + selectedLiquidityIn.symbol + "...");
+
+    const allowanceA = await tokenAContract.allowance(userAddress, routerAddress);
+    if (allowanceA < amountADesired) {
+      const approveA = await tokenAContract.approve(routerAddress, amountADesired);
+      await approveA.wait();
+      console.log("✅ Approved token A");
+    } else {
+      console.log("✅ Token A already approved");
     }
 
-    // === [6] Slippage & Deadline ===
-    const slippage = getSlippage();
-    const minA = amtA * BigInt(100 - slippage) / 100n;
-    const minB = amtB * BigInt(100 - slippage) / 100n;
-    const deadline = Math.floor(Date.now() / 1000) + 600;
+    textTxModal("🪙 Approving " + selectedLiquidityOut.symbol + "...");
+    const allowanceB = await tokenBContract.allowance(userAddress, routerAddress);
+    if (allowanceB < amountBDesired) {
+      const approveB = await tokenBContract.approve(routerAddress, amountBDesired);
+      await approveB.wait();
+      console.log("✅ Approved token B");
+    } else {
+      console.log("✅ Token B already approved");
+    }
 
-    console.log("📉 Slippage:", slippage + "%");
-    console.log("✅ minA:", minA.toString());
-    console.log("✅ minB:", minB.toString());
-    console.log("⏳ Deadline:", deadline);
+    textTxModal("🔁 Menambahkan liquidity...");
 
-    // === [7] Debug Parameter Lengkap ===
-    console.log("=== PARAMETER ADD_LIQUIDITY ===");
-    console.log("Router:", routerAddress);
-    console.log("tokenA:", tokenA);
-    console.log("tokenB:", tokenB);
-    console.log("amtA:", amtA.toString());
-    console.log("amtB:", amtB.toString());
-    console.log("minA:", minA.toString());
-    console.log("minB:", minB.toString());
-    console.log("to:", userAddress);
-    console.log("deadline:", deadline);
-
-    // === [8] Eksekusi addLiquidity ===
-    showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
-      tokenA, tokenB,
-      amtA, amtB,
-      minA, minB,
+      tokenA,
+      tokenB,
+      amountADesired,
+      amountBDesired,
+      amountAMin,
+      amountBMin,
       userAddress,
       deadline
     );
-    console.log("⏳ addLiquidity tx sent:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("🎉 Sukses addLiquidity TX:", receipt);
 
-    showTxStatusModal(
-      "success",
-      "✅ Liquidity Berhasil!",
-      `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
-      `https://testnet.xoscan.io/tx/${receipt.hash}`
-    );
+    console.log("📤 Tx dikirim:", tx.hash);
+    textTxModal("⏳ Menunggu konfirmasi...\nHash:\n" + tx.hash);
+    await tx.wait();
 
-    updateAllBalances();
+    console.log("✅ Selesai tambah liquidity");
+    textTxModal("✅ Berhasil menambahkan liquidity!");
 
+    // Refresh balance biar user tahu
+    await getBalance(selectedLiquidityIn.address, "liquidityBalanceA");
+    await getBalance(selectedLiquidityOut.address, "liquidityBalanceB");
+
+    hideTxModal();
+    alert("✅ Liquidity berhasil ditambahkan!");
   } catch (err) {
-    console.error("❌ ERROR DETAIL addLiquidity:", err);
-
-    let detailedMsg = err?.reason || err?.message || "Unknown error";
-    if (err?.error && typeof err.error === "object") {
-      detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
-    }
-    if (err?.data) {
-      detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
-    }
-    if (err?.transaction) {
-      detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
-    }
-
-    showTxStatusModal(
-      "error",
-      "❌ Gagal Add Liquidity",
-      detailedMsg,
-      ""
-    );
-    alert("🔍 Detail Error: " + detailedMsg);
-  } finally {
-    setLiquidityLoading(false);
+    console.error("❌ Gagal addLiquidity:", err);
+    textTxModal("❌ Gagal:\n" + (err?.reason || err?.message || err));
+    setTimeout(hideTxModal, 6000);
   }
 }
+
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
