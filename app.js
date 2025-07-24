@@ -275,6 +275,7 @@ async function doSwap() {
 async function addLiquidity() {
   try {
     console.log("🟡 Memulai addLiquidity()");
+
     if (!userAddress) return alert("❌ Connect wallet dulu.");
     if (!selectedLiquidityIn || !selectedLiquidityOut)
       return alert("❗ Pilih token A dan B untuk liquidity.");
@@ -284,23 +285,19 @@ async function addLiquidity() {
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
 
-    const inputA = document.getElementById("liquidityAmountA").value || "0";
-    const inputB = document.getElementById("liquidityAmountB").value || "0";
+    const amountADesired = ethers.parseUnits(
+      document.getElementById("liquidityAmountA").value || "0",
+      selectedLiquidityIn.decimals
+    );
+    const amountBDesired = ethers.parseUnits(
+      document.getElementById("liquidityAmountB").value || "0",
+      selectedLiquidityOut.decimals
+    );
 
-    console.log("🧪 Input Amount A:", inputA);
-    console.log("🧪 Input Amount B:", inputB);
-
-    const decimalsA = selectedLiquidityIn.decimals;
-    const decimalsB = selectedLiquidityOut.decimals;
-
-    console.log("🔎 Decimals A:", decimalsA);
-    console.log("🔎 Decimals B:", decimalsB);
-
-    const amountADesired = ethers.parseUnits(inputA, decimalsA);
-    const amountBDesired = ethers.parseUnits(inputB, decimalsB);
-
-    console.log("📊 Parsed Amount A:", amountADesired.toString());
-    console.log("📊 Parsed Amount B:", amountBDesired.toString());
+    console.log("📥 Token A:", tokenA, "| Decimals:", selectedLiquidityIn.decimals);
+    console.log("📥 Token B:", tokenB, "| Decimals:", selectedLiquidityOut.decimals);
+    console.log("📊 Amount A:", amountADesired.toString());
+    console.log("📊 Amount B:", amountBDesired.toString());
 
     const amountAMin = amountADesired * 90n / 100n;
     const amountBMin = amountBDesired * 90n / 100n;
@@ -309,17 +306,34 @@ async function addLiquidity() {
     const tokenAContract = new ethers.Contract(tokenA, ERC20_ABI, signer);
     const tokenBContract = new ethers.Contract(tokenB, ERC20_ABI, signer);
 
+    // ✅ Cek pair sudah ada atau belum
+    const pairAddress = await factoryContract.getPair(tokenA, tokenB);
+    if (pairAddress === "0x0000000000000000000000000000000000000000") {
+      console.log("🔍 Pair belum ada, akan dibuat otomatis saat addLiquidity()");
+    } else {
+      console.log("✅ Pair sudah ada:", pairAddress);
+    }
+
+    // ✅ Approve Token A
     console.log("🪙 Approving token A...");
+    const allowanceA = await tokenAContract.allowance(userAddress, routerAddress);
+    console.log("🔍 Allowance token A sebelum:", allowanceA.toString());
+
     const approveA = await tokenAContract.approve(routerAddress, amountADesired);
     await approveA.wait();
     console.log("✅ Approved token A");
 
+    // ✅ Approve Token B
     console.log("🪙 Approving token B...");
+    const allowanceB = await tokenBContract.allowance(userAddress, routerAddress);
+    console.log("🔍 Allowance token B sebelum:", allowanceB.toString());
+
     const approveB = await tokenBContract.approve(routerAddress, amountBDesired);
     await approveB.wait();
     console.log("✅ Approved token B");
 
-    console.log("🔁 Calling addLiquidity...");
+    // ✅ Panggil addLiquidity
+    console.log("🔁 Memanggil addLiquidity()...");
 
     const tx = await routerContract.addLiquidity(
       tokenA,
@@ -332,16 +346,32 @@ async function addLiquidity() {
       deadline
     );
 
-    console.log("📤 Tx sent:", tx.hash);
+    console.log("📤 Tx dikirim:", tx.hash);
     await tx.wait();
-    console.log("✅ Liquidity added!");
+    console.log("✅ Liquidity berhasil ditambahkan!");
     alert("✅ Liquidity berhasil ditambahkan!");
 
   } catch (err) {
-    console.error("❌ Gagal addLiquidity:", err);
-    alert("❌ Gagal menambahkan liquidity:\n" + (err?.message || err));
+    console.error("❌ Gagal addLiquidity");
+    console.log("📛 Error detail:", {
+      name: err.name,
+      message: err.message,
+      reason: err.reason,
+      code: err.code,
+      data: err.data,
+      transaction: err.transaction
+    });
+
+    if (err?.code === "CALL_EXCEPTION") {
+      alert("❌ CALL_EXCEPTION: Periksa kembali decimals atau token tidak valid.");
+    } else if (err?.code === "UNPREDICTABLE_GAS_LIMIT") {
+      alert("❌ Estimasi gas gagal. Mungkin approve belum selesai atau token salah.");
+    } else {
+      alert("❌ Gagal menambahkan liquidity:\n" + (err?.message || err));
+    }
   }
 }
+
 
 
 // === Fungsi Loading ===
