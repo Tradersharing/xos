@@ -24,17 +24,30 @@ const XOS_PARAMS = {
   blockExplorerUrls: ["https://testnet.xoscan.io"]
 };
 
-// Contract Addresses
-const routerAddress = "0xb129536147c0CA420490d6b68d5bb69D7Bc2c151";
-const factoryAddress = "0x6b469eDB9FeE58ECA93699281eD83C6FAc179701";
 
+// Contract Addresses
+const routerAddress = "0x55cA246FC7F514746d28867215d9F6f94AB9b257";
+const factoryAddress = "0x62864f0fab6f10b8468ea5235ed2b28707b333e4";
+const ERC20_ABI = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function decimals() view returns (uint8)",
+  "function balanceOf(address owner) view returns (uint256)"
+];
 
 // Minimal ABIs
 const routerAbi = [
-  "function getAmountsOut(uint,address[]) view returns(uint[])",
-  "function swapExactTokensForTokens(uint,uint,address[],address,uint) external returns(uint[])",
-  "function addLiquidity(address,address,uint,uint,uint,uint,address,uint) returns(uint,uint,uint)"
+  "function addLiquidity(address,address,uint256,uint256,uint256,uint256,address,uint256) returns (uint256,uint256,uint256)",
+  "function removeLiquidity(address,address,uint256,uint256,uint256,address,uint256) returns (uint256,uint256)",
+  "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+  "function swapTokensForExactTokens(uint256,uint256,address[],address,uint256) returns (uint256[])",
+  "function getAmountsOut(uint256,address[]) view returns (uint256[])",
+  "function getAmountsIn(uint256,address[]) view returns (uint256[])",
+  "function quote(uint256,uint256,uint256) view returns (uint256)",
+  "function pairFor(address,address) view returns (address)",
+  "function factory() view returns (address)"
 ];
+
+
 const factoryAbi = [
   "function getPair(address,address) view returns(address)",
   "function createPair(address,address) returns(address)"
