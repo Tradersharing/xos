@@ -418,6 +418,13 @@ async function addLiquidity() {
       userAddress,
       deadline
     );
+    console.log("🔁 Calling router.addLiquidity()");
+console.log("Router Address:", routerAddress);
+console.log("Token A:", tokenA);
+console.log("Token B:", tokenB);
+console.log("User Address:", userAddress);
+console.log("Deadline:", deadline.toString());
+
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     
     // Ganti ini:
@@ -425,6 +432,7 @@ async function addLiquidity() {
     const receipt = await waitForReceiptWithRetry(tx.hash);
 
     console.log("🎉 Sukses addLiquidity TX:", receipt);
+
 
     showTxStatusModal(
       "success",
