@@ -272,6 +272,7 @@ async function doSwap() {
 }
 
 // === Liquidity ===
+
 async function addLiquidity() {
   try {
     console.log("🟡 Memulai addLiquidity()");
@@ -284,82 +285,106 @@ async function addLiquidity() {
 
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
-    const amountADesired = ethers.parseUnits(
-      document.getElementById("liquidityAmountA").value || "0",
-      selectedLiquidityIn.decimals
-    );
-    const amountBDesired = ethers.parseUnits(
-      document.getElementById("liquidityAmountB").value || "0",
-      selectedLiquidityOut.decimals
-    );
+    const decA = selectedLiquidityIn.decimals || 18;
+    const decB = selectedLiquidityOut.decimals || 18;
 
-    console.log("📥 Token A:", tokenA);
-    console.log("📥 Token B:", tokenB);
-    console.log("📊 Amount A:", amountADesired.toString());
-    console.log("📊 Amount B:", amountBDesired.toString());
+    const rawAmtA = document.getElementById("liquidityAmountA").value;
+    const rawAmtB = document.getElementById("liquidityAmountB").value;
 
-    // Hitung toleransi slippage
+    if (!rawAmtA || !rawAmtB || isNaN(rawAmtA) || isNaN(rawAmtB)) {
+      return alert("⚠️ Jumlah token tidak valid.");
+    }
+
+    const amountADesired = ethers.parseUnits(rawAmtA, decA);
+    const amountBDesired = ethers.parseUnits(rawAmtB, decB);
+
     const amountAMin = amountADesired * 90n / 100n;
     const amountBMin = amountBDesired * 90n / 100n;
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
-    // Tampilkan modal proses
+    // === SHOW MODAL STATUS ===
     dsModal.style.display = "block";
     dsStatusText.textContent = "⏳ Menyiapkan transaksi...";
     dsLoadingIcon.style.display = "inline-block";
     dsSuccessIcon.style.display = "none";
     dsFailIcon.style.display = "none";
 
-    // Cek apakah pair sudah ada
-    console.log("🔍 Mengecek pair di factory...");
-    const pairAddress = await factoryContract.getPair(tokenA, tokenB);
-    if (pairAddress !== ethers.ZeroAddress) {
-      console.log("✅ Pair sudah tersedia:", pairAddress);
-    } else {
-      console.log("⚠️ Pair belum tersedia. Akan dibuat saat addLiquidity.");
+    // === DEBUG INFO ===
+    console.log("🧾 Input Info:");
+    console.log("Token A:", tokenA, `(${selectedLiquidityIn.symbol})`);
+    console.log("Token B:", tokenB, `(${selectedLiquidityOut.symbol})`);
+    console.log("Amount A:", rawAmtA, `(${amountADesired.toString()})`);
+    console.log("Amount B:", rawAmtB, `(${amountBDesired.toString()})`);
+    console.log("Min A:", amountAMin.toString());
+    console.log("Min B:", amountBMin.toString());
+    console.log("Deadline:", deadline);
+
+    // === VALIDASI KONTRAK ===
+    try {
+      const testFactory = await routerContract.factory();
+      console.log("✅ routerContract OK: factory =", testFactory);
+    } catch (e) {
+      console.error("❌ routerContract GAGAL: factory() tidak bisa dipanggil", e);
     }
 
-    // Approve token A
+    try {
+      const pairLength = await factoryContract.allPairsLength();
+      console.log("✅ factoryContract OK: allPairsLength =", pairLength.toString());
+    } catch (e) {
+      console.error("❌ factoryContract GAGAL: allPairsLength() error", e);
+    }
+
+    // === CEK PAIR ===
+    console.log("🔍 Mengecek pair di factory...");
+    const pairAddress = await factoryContract.getPair(tokenA, tokenB);
+    if (pairAddress !== ethers.ZeroAddress && pairAddress !== "0x0000000000000000000000000000000000000000") {
+      console.log("✅ Pair sudah tersedia:", pairAddress);
+    } else {
+      console.log("⚠️ Pair belum ada, akan dibuat otomatis saat addLiquidity.");
+    }
+
+    // === APPROVE A ===
+    dsStatusText.textContent = "🔐 Approving Token A...";
     const tokenAContract = new ethers.Contract(tokenA, ERC20_ABI, signer);
-    console.log("🪙 Approving token A...");
-    dsStatusText.textContent = "Minta persetujuan token A...";
-    const approveA = await tokenAContract.approve(routerAddress, amountADesired);
-    await approveA.wait();
-    console.log("✅ Approved token A");
+    const txA = await tokenAContract.approve(routerAddress, amountADesired);
+    console.log("⏳ Approve A TX Sent:", txA.hash);
+    await txA.wait();
+    console.log("✅ Approve A Confirmed");
 
-    // Approve token B
+    // === APPROVE B ===
+    dsStatusText.textContent = "🔐 Approving Token B...";
     const tokenBContract = new ethers.Contract(tokenB, ERC20_ABI, signer);
-    console.log("🪙 Approving token B...");
-    dsStatusText.textContent = "Minta persetujuan token B...";
-    const approveB = await tokenBContract.approve(routerAddress, amountBDesired);
-    await approveB.wait();
-    console.log("✅ Approved token B");
+    const txB = await tokenBContract.approve(routerAddress, amountBDesired);
+    console.log("⏳ Approve B TX Sent:", txB.hash);
+    await txB.wait();
+    console.log("✅ Approve B Confirmed");
 
-    // Add liquidity
-    console.log("🔁 Calling addLiquidity...");
-    dsStatusText.textContent = "Menambahkan liquidity...";
+    // === ADD LIQUIDITY ===
+    dsStatusText.textContent = "🚀 Menambahkan liquidity...";
     const tx = await routerContract.addLiquidity(
-      tokenA,
-      tokenB,
-      amountADesired,
-      amountBDesired,
-      amountAMin,
-      amountBMin,
+      tokenA, tokenB,
+      amountADesired, amountBDesired,
+      amountAMin, amountBMin,
       userAddress,
       deadline
     );
-
-    console.log("📤 Tx sent:", tx.hash);
+    console.log("⏳ addLiquidity TX:", tx.hash);
     dsStatusText.textContent = "⏳ Menunggu konfirmasi blockchain...";
     await tx.wait();
 
-    console.log("✅ Liquidity berhasil ditambahkan!");
-    dsStatusText.textContent = "✅ Liquidity berhasil ditambahkan!";
+    console.log("🎉 Liquidity berhasil ditambahkan!");
+    dsStatusText.textContent = `✅ Liquidity sukses!\n${rawAmtA} ${selectedLiquidityIn.symbol} + ${rawAmtB} ${selectedLiquidityOut.symbol}`;
     dsLoadingIcon.style.display = "none";
     dsSuccessIcon.style.display = "inline-block";
+
   } catch (err) {
-    console.error("❌ Gagal addLiquidity:", err);
-    dsStatusText.textContent = "❌ Gagal menambahkan liquidity:\n" + (err?.reason || err?.message || "Unknown error");
+    console.error("❌ ERROR addLiquidity:", err);
+
+    let detail = err?.reason || err?.message || "Unknown error";
+    if (err?.data) detail += "\nData: " + JSON.stringify(err.data);
+    if (err?.error) detail += "\nRPC Error: " + JSON.stringify(err.error);
+
+    dsStatusText.textContent = "❌ Gagal menambahkan liquidity:\n" + detail;
     dsLoadingIcon.style.display = "none";
     dsFailIcon.style.display = "inline-block";
   }
