@@ -284,7 +284,6 @@ async function addLiquidity() {
 
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
-
     const amountADesired = ethers.parseUnits(
       document.getElementById("liquidityAmountA").value || "0",
       selectedLiquidityIn.decimals
@@ -294,47 +293,51 @@ async function addLiquidity() {
       selectedLiquidityOut.decimals
     );
 
-    console.log("📥 Token A:", tokenA, "| Decimals:", selectedLiquidityIn.decimals);
-    console.log("📥 Token B:", tokenB, "| Decimals:", selectedLiquidityOut.decimals);
+    console.log("📥 Token A:", tokenA);
+    console.log("📥 Token B:", tokenB);
     console.log("📊 Amount A:", amountADesired.toString());
     console.log("📊 Amount B:", amountBDesired.toString());
 
+    // Hitung toleransi slippage
     const amountAMin = amountADesired * 90n / 100n;
     const amountBMin = amountBDesired * 90n / 100n;
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
-    const tokenAContract = new ethers.Contract(tokenA, ERC20_ABI, signer);
-    const tokenBContract = new ethers.Contract(tokenB, ERC20_ABI, signer);
+    // Tampilkan modal proses
+    dsModal.style.display = "block";
+    dsStatusText.textContent = "⏳ Menyiapkan transaksi...";
+    dsLoadingIcon.style.display = "inline-block";
+    dsSuccessIcon.style.display = "none";
+    dsFailIcon.style.display = "none";
 
-    // ✅ Cek pair sudah ada atau belum
+    // Cek apakah pair sudah ada
+    console.log("🔍 Mengecek pair di factory...");
     const pairAddress = await factoryContract.getPair(tokenA, tokenB);
-    if (pairAddress === "0x0000000000000000000000000000000000000000") {
-      console.log("🔍 Pair belum ada, akan dibuat otomatis saat addLiquidity()");
+    if (pairAddress !== ethers.ZeroAddress) {
+      console.log("✅ Pair sudah tersedia:", pairAddress);
     } else {
-      console.log("✅ Pair sudah ada:", pairAddress);
+      console.log("⚠️ Pair belum tersedia. Akan dibuat saat addLiquidity.");
     }
 
-    // ✅ Approve Token A
+    // Approve token A
+    const tokenAContract = new ethers.Contract(tokenA, ERC20_ABI, signer);
     console.log("🪙 Approving token A...");
-    const allowanceA = await tokenAContract.allowance(userAddress, routerAddress);
-    console.log("🔍 Allowance token A sebelum:", allowanceA.toString());
-
+    dsStatusText.textContent = "Minta persetujuan token A...";
     const approveA = await tokenAContract.approve(routerAddress, amountADesired);
     await approveA.wait();
     console.log("✅ Approved token A");
 
-    // ✅ Approve Token B
+    // Approve token B
+    const tokenBContract = new ethers.Contract(tokenB, ERC20_ABI, signer);
     console.log("🪙 Approving token B...");
-    const allowanceB = await tokenBContract.allowance(userAddress, routerAddress);
-    console.log("🔍 Allowance token B sebelum:", allowanceB.toString());
-
+    dsStatusText.textContent = "Minta persetujuan token B...";
     const approveB = await tokenBContract.approve(routerAddress, amountBDesired);
     await approveB.wait();
     console.log("✅ Approved token B");
 
-    // ✅ Panggil addLiquidity
-    console.log("🔁 Memanggil addLiquidity()...");
-
+    // Add liquidity
+    console.log("🔁 Calling addLiquidity...");
+    dsStatusText.textContent = "Menambahkan liquidity...";
     const tx = await routerContract.addLiquidity(
       tokenA,
       tokenB,
@@ -346,31 +349,22 @@ async function addLiquidity() {
       deadline
     );
 
-    console.log("📤 Tx dikirim:", tx.hash);
+    console.log("📤 Tx sent:", tx.hash);
+    dsStatusText.textContent = "⏳ Menunggu konfirmasi blockchain...";
     await tx.wait();
+
     console.log("✅ Liquidity berhasil ditambahkan!");
-    alert("✅ Liquidity berhasil ditambahkan!");
-
+    dsStatusText.textContent = "✅ Liquidity berhasil ditambahkan!";
+    dsLoadingIcon.style.display = "none";
+    dsSuccessIcon.style.display = "inline-block";
   } catch (err) {
-    console.error("❌ Gagal addLiquidity");
-    console.log("📛 Error detail:", {
-      name: err.name,
-      message: err.message,
-      reason: err.reason,
-      code: err.code,
-      data: err.data,
-      transaction: err.transaction
-    });
-
-    if (err?.code === "CALL_EXCEPTION") {
-      alert("❌ CALL_EXCEPTION: Periksa kembali decimals atau token tidak valid.");
-    } else if (err?.code === "UNPREDICTABLE_GAS_LIMIT") {
-      alert("❌ Estimasi gas gagal. Mungkin approve belum selesai atau token salah.");
-    } else {
-      alert("❌ Gagal menambahkan liquidity:\n" + (err?.message || err));
-    }
+    console.error("❌ Gagal addLiquidity:", err);
+    dsStatusText.textContent = "❌ Gagal menambahkan liquidity:\n" + (err?.reason || err?.message || "Unknown error");
+    dsLoadingIcon.style.display = "none";
+    dsFailIcon.style.display = "inline-block";
   }
 }
+
 
 
 
