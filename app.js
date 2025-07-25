@@ -273,6 +273,18 @@ async function doSwap() {
 
 // === Liquidity ===
 
+async function waitForReceiptWithRetry(txHash, retries = 5, delayMs = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const receipt = await provider.getTransactionReceipt(txHash);
+      if (receipt) return receipt;
+    } catch (e) {
+      console.warn("Retry getting receipt:", e.message || e);
+    }
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  throw new Error("Gagal mendapatkan receipt transaksi setelah beberapa percobaan.");
+}
 
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
@@ -402,14 +414,18 @@ async function addLiquidity() {
       deadline
     );
     console.log("⏳ addLiquidity tx sent:", tx.hash);
-    const receipt = await tx.wait();
+    
+    // Ganti ini:
+    // const receipt = await tx.wait();
+    const receipt = await waitForReceiptWithRetry(tx.hash);
+
     console.log("🎉 Sukses addLiquidity TX:", receipt);
 
     showTxStatusModal(
       "success",
       "✅ Liquidity Berhasil!",
       `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
-      `https://testnet.xoscan.io/tx/${receipt.hash}`
+      `https://testnet.xoscan.io/tx/${receipt.transactionHash || receipt.hash || tx.hash}`
     );
 
     updateAllBalances();
