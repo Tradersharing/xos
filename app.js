@@ -273,18 +273,23 @@ async function doSwap() {
 
 // === Liquidity ===
 
-async function waitForReceiptWithRetry(txHash, retries = 5, delayMs = 2000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const receipt = await provider.getTransactionReceipt(txHash);
-      if (receipt) return receipt;
-    } catch (e) {
-      console.warn("Retry getting receipt:", e.message || e);
+async function ensureRouterSet(pairAddress) {
+  try {
+    const pairContract = new ethers.Contract(pairAddress, PAIR_ABI, signer);
+    const currentRouter = await pairContract.router();
+    if (currentRouter === "0x0000000000000000000000000000000000000000") {
+      console.log("⚙️ Router belum diset. Menjalankan setRouter...");
+      const tx = await pairContract.setRouter(routerAddress);
+      await tx.wait();
+      console.log("✅ Router berhasil diset.");
+    } else {
+      console.log("✅ Router sudah diset:", currentRouter);
     }
-    await new Promise(r => setTimeout(r, delayMs));
+  } catch (err) {
+    console.error("❌ Gagal setRouter:", err);
   }
-  throw new Error("Gagal mendapatkan receipt transaksi setelah beberapa percobaan.");
 }
+
 
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
