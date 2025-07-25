@@ -298,7 +298,7 @@ async function addLiquidity() {
     console.log("🔁 Token B:", tokenB);
 
     // === [1] Ambil desimal token ===
-    const decA = 18; // sementara manual biar fokus error lain
+    const decA = 18;
     const decB = 18;
     console.log("🔢 Desimal Token A:", decA);
     console.log("🔢 Desimal Token B:", decB);
@@ -328,7 +328,7 @@ async function addLiquidity() {
 
     // === [5] Cek & Buat Pair ===
     console.log("🔍 Cek apakah pair sudah ada...");
-    const existingPair = await factoryContract.getPair(tokenA, tokenB);
+    let existingPair = await factoryContract.getPair(tokenA, tokenB);
     console.log("🔍 Pair ditemukan:", existingPair);
 
     if (!existingPair || existingPair === ethers.ZeroAddress) {
@@ -337,7 +337,21 @@ async function addLiquidity() {
       console.log("⏳ Create Pair Tx Sent:", createTx.hash);
       await createTx.wait();
       console.log("✅ Pair berhasil dibuat");
+
       await new Promise(r => setTimeout(r, 4000));
+
+      // Ambil ulang alamat pair
+      existingPair = await factoryContract.getPair(tokenA, tokenB);
+      console.log("📦 Pair Address setelah dibuat:", existingPair);
+
+      // ✅ Tambahan penting: setRouter() ke pair agar addLiquidity tidak gagal
+      const pairAbi = ["function setRouter(address)"];
+      const pairContract = new ethers.Contract(existingPair, pairAbi, signer);
+      console.log("⚙️ Memanggil setRouter di Pair...");
+      const setRouterTx = await pairContract.setRouter(routerAddress);
+      console.log("⏳ setRouter tx sent:", setRouterTx.hash);
+      await setRouterTx.wait();
+      console.log("✅ setRouter berhasil");
     }
 
     // === [6] Slippage & Deadline ===
@@ -410,6 +424,7 @@ async function addLiquidity() {
     setLiquidityLoading(false);
   }
 }
+
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
