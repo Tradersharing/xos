@@ -298,6 +298,29 @@ async function ensureRouterSet(pairAddress) {
     console.warn("⚠️ Gagal setRouter, kemungkinan bukan owner atau tidak didukung:", err.message || err);
   }
 }
+//===================
+
+async function ownerSetRouterIfNeeded(pairAddress) {
+  const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
+
+  const currentRouter = await pair.router();
+  if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
+    const owner = await pair.owner();
+    if (userAddress.toLowerCase() === owner.toLowerCase()) {
+      const tx = await pair.setRouter(routerAddress);
+      await tx.wait();
+      console.log("✅ Router diset oleh owner.");
+    } else {
+      console.warn("⛔ Bukan owner, tidak bisa setRouter");
+    }
+  }
+}
+
+
+
+
+
+//=================
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -378,7 +401,8 @@ async function addLiquidity() {
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
-
+    await ownerSetRouterIfNeeded(pairAddress);
+    
     console.log("📉 Slippage:", slippage + "%");
     console.log("✅ minA:", minA.toString());
     console.log("✅ minB:", minB.toString());
