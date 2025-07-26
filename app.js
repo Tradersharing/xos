@@ -275,22 +275,29 @@ async function doSwap() {
 
 async function ensureRouterSet(pairAddress) {
   try {
-    const pairContract = new ethers.Contract(pairAddress, PAIR_ABI, signer);
+    const pairContract = new ethers.Contract(pairAddress, [
+      "function setRouter(address)",
+      "function router() view returns (address)"
+    ], signer);
+
     const currentRouter = await pairContract.router();
-    if (currentRouter === "0x0000000000000000000000000000000000000000") {
-      console.log("⚙️ Router belum diset. Menjalankan setRouter...");
+    if (
+      !currentRouter ||
+      currentRouter === "0x0000000000000000000000000000000000000000" ||
+      currentRouter.toLowerCase() !== routerAddress.toLowerCase()
+    ) {
+      console.log("⚙️ Router belum sesuai. Menjalankan setRouter...");
       const tx = await pairContract.setRouter(routerAddress);
+      console.log("⏳ setRouter tx sent:", tx.hash);
       await tx.wait();
-      console.log("✅ Router berhasil diset.");
+      console.log("✅ Router berhasil diset:", routerAddress);
     } else {
       console.log("✅ Router sudah diset:", currentRouter);
     }
   } catch (err) {
-    console.error("❌ Gagal setRouter:", err);
+    console.warn("⚠️ Gagal setRouter, kemungkinan bukan owner atau tidak didukung:", err.message || err);
   }
 }
-
-
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -358,33 +365,12 @@ async function addLiquidity() {
       console.log("✅ Pair berhasil dibuat");
 
       await new Promise(r => setTimeout(r, 4000));
-
-      // Ambil ulang alamat pair
       existingPair = await factoryContract.getPair(tokenA, tokenB);
       console.log("📦 Pair Address setelah dibuat:", existingPair);
     }
 
-    // ✅ Tambahan penting: setRouter jika belum diset
-    try {
-      const pairAbi = [
-        "function setRouter(address)",
-        "function router() view returns (address)"
-      ];
-      const pairContract = new ethers.Contract(existingPair, pairAbi, signer);
-      const currentRouter = await pairContract.router();
-
-      if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
-        console.log("⚙️ Memanggil setRouter di Pair...");
-        const setRouterTx = await pairContract.setRouter(routerAddress);
-        console.log("⏳ setRouter tx sent:", setRouterTx.hash);
-        await setRouterTx.wait();
-        console.log("✅ setRouter berhasil");
-      } else {
-        console.log("✅ Router sudah diset sebelumnya:", currentRouter);
-      }
-    } catch (e) {
-      console.warn("⚠️ Gagal setRouter, mungkin sudah diset:", e.message);
-    }
+    // ✅ Pastikan router diset (pakai ensureRouterSet terbaru)
+    await ensureRouterSet(existingPair);
 
     // === [6] Slippage & Deadline ===
     const slippage = getSlippage();
@@ -419,20 +405,15 @@ async function addLiquidity() {
       deadline
     );
     console.log("🔁 Calling router.addLiquidity()");
-console.log("Router Address:", routerAddress);
-console.log("Token A:", tokenA);
-console.log("Token B:", tokenB);
-console.log("User Address:", userAddress);
-console.log("Deadline:", deadline.toString());
-
+    console.log("Router Address:", routerAddress);
+    console.log("Token A:", tokenA);
+    console.log("Token B:", tokenB);
+    console.log("User Address:", userAddress);
+    console.log("Deadline:", deadline.toString());
     console.log("⏳ addLiquidity tx sent:", tx.hash);
-    
-    // Ganti ini:
-    // const receipt = await tx.wait();
+
     const receipt = await waitForReceiptWithRetry(tx.hash);
-
     console.log("🎉 Sukses addLiquidity TX:", receipt);
-
 
     showTxStatusModal(
       "success",
@@ -468,7 +449,6 @@ console.log("Deadline:", deadline.toString());
     setLiquidityLoading(false);
   }
 }
-
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
