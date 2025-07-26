@@ -273,6 +273,9 @@ async function doSwap() {
 
 // === Liquidity ===
 
+
+//===================
+// ===================
 async function ensureRouterSet(pairAddress) {
   try {
     const pairContract = new ethers.Contract(pairAddress, [
@@ -298,8 +301,8 @@ async function ensureRouterSet(pairAddress) {
     console.warn("⚠️ Gagal setRouter, kemungkinan bukan owner atau tidak didukung:", err.message || err);
   }
 }
-//===================
 
+// ===================
 async function ownerSetRouterIfNeeded(pairAddress) {
   const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
 
@@ -316,11 +319,7 @@ async function ownerSetRouterIfNeeded(pairAddress) {
   }
 }
 
-
-
-
-
-//=================
+// ==================
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -375,7 +374,6 @@ async function addLiquidity() {
     await txB.wait();
     console.log("✅ Approve Token B Confirmed");
 
-
     // === [5] Cek & Buat Pair ===
     console.log("🔍 Cek apakah pair sudah ada...");
     let existingPair = await factoryContract.getPair(tokenA, tokenB);
@@ -396,13 +394,15 @@ async function addLiquidity() {
     // ✅ Pastikan router diset (pakai ensureRouterSet terbaru)
     await ensureRouterSet(existingPair);
 
+    // ✅ Set router oleh owner jika perlu
+    await ownerSetRouterIfNeeded(existingPair);
+
     // === [6] Slippage & Deadline ===
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
-    await ownerSetRouterIfNeeded(pairAddress);
-    
+
     console.log("📉 Slippage:", slippage + "%");
     console.log("✅ minA:", minA.toString());
     console.log("✅ minB:", minB.toString());
@@ -474,6 +474,8 @@ async function addLiquidity() {
     setLiquidityLoading(false);
   }
 }
+
+
 
 // === Fungsi Loading ===
 function setLiquidityLoading(state) {
