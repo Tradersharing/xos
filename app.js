@@ -303,6 +303,12 @@ async function ensureRouterSet(pairAddress) {
 }
 
 // ===================
+const PAIR_ABI = [
+  "function router() view returns (address)",
+  "function owner() view returns (address)",
+  "function setRouter(address newRouter) external"
+];
+
 async function ownerSetRouterIfNeeded(pairAddress) {
   const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
 
