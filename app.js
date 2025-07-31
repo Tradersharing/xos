@@ -326,6 +326,7 @@ async function ownerSetRouterIfNeeded(pairAddress) {
 }
 
 // ==================
+
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -372,6 +373,11 @@ async function addLiquidity() {
     await txA.wait();
     console.log("✅ Approve Token A Confirmed");
 
+    // Check allowance A
+    const allowanceA = await new ethers.Contract(tokenA, ["function allowance(address,address) view returns (uint256)"], provider)
+      .allowance(userAddress, routerAddress);
+    console.log("🔎 Allowance Token A:", allowanceA.toString());
+
     // === [4] Approve Token B ===
     showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityOut.symbol}...`);
     const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
@@ -379,6 +385,11 @@ async function addLiquidity() {
     console.log("⏳ Approve Token B Tx Sent:", txB.hash);
     await txB.wait();
     console.log("✅ Approve Token B Confirmed");
+
+    // Check allowance B
+    const allowanceB = await new ethers.Contract(tokenB, ["function allowance(address,address) view returns (uint256)"], provider)
+      .allowance(userAddress, routerAddress);
+    console.log("🔎 Allowance Token B:", allowanceB.toString());
 
     // === [5] Cek & Buat Pair ===
     console.log("🔍 Cek apakah pair sudah ada...");
@@ -397,10 +408,10 @@ async function addLiquidity() {
       console.log("📦 Pair Address setelah dibuat:", existingPair);
     }
 
-    // ✅ Pastikan router diset (pakai ensureRouterSet terbaru)
+    // Pastikan router di-set pada pair
     await ensureRouterSet(existingPair);
 
-    // ✅ Set router oleh owner jika perlu
+    // Set router oleh owner jika perlu
     await ownerSetRouterIfNeeded(existingPair);
 
     // === [6] Slippage & Deadline ===
@@ -426,7 +437,17 @@ async function addLiquidity() {
     console.log("to:", userAddress);
     console.log("deadline:", deadline);
 
-    // === [8] Eksekusi addLiquidity ===
+    // === [8] Estimate Gas ===
+    try {
+      const gasEstimate = await routerContract.estimateGas.addLiquidity(
+        tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
+      );
+      console.log("⛽ Estimated Gas addLiquidity:", gasEstimate.toString());
+    } catch (estimateErr) {
+      console.error("❌ Gagal estimateGas addLiquidity:", estimateErr);
+    }
+
+    // === [9] Eksekusi addLiquidity ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB,
@@ -435,15 +456,7 @@ async function addLiquidity() {
       userAddress,
       deadline
     );
-    console.log("🔁 Calling router.addLiquidity()");
-    console.log("Router Address:", routerAddress);
-    console.log("Token A:", tokenA);
-    console.log("Token B:", tokenB);
-    console.log("User Address:", userAddress);
-    console.log("Deadline:", deadline.toString());
     console.log("⏳ addLiquidity tx sent:", tx.hash);
-
-}
 
     const receipt = await waitForReceiptWithRetry(tx.hash);
     console.log("🎉 Sukses addLiquidity TX:", receipt);
@@ -457,43 +470,40 @@ async function addLiquidity() {
 
     updateAllBalances();
 
-  } 
- catch (err) {
-  console.error("❌ ERROR DETAIL addLiquidity:", err);
+  } catch (err) {
+    console.error("❌ ERROR DETAIL addLiquidity:", err);
 
-  let detailedMsg = err?.reason || err?.message || "Unknown error";
+    let detailedMsg = err?.reason || err?.message || "Unknown error";
 
-  if (err?.code === "CALL_EXCEPTION") {
-    detailedMsg += "\n⚠️ CALL_EXCEPTION terjadi. Kemungkinan:\n";
-    detailedMsg += "- Token belum di-approve?\n";
-    detailedMsg += "- Pair belum benar-benar dibuat?\n";
-    detailedMsg += "- Fungsi addLiquidity() di router gagal atau salah parameter?\n";
-    detailedMsg += "- Router address belum diset di pair?\n";
-  }
+    if (err?.code === "CALL_EXCEPTION") {
+      detailedMsg += "\n⚠️ CALL_EXCEPTION terjadi. Kemungkinan:\n";
+      detailedMsg += "- Token belum di-approve?\n";
+      detailedMsg += "- Pair belum benar-benar dibuat?\n";
+      detailedMsg += "- Fungsi addLiquidity() di router gagal atau salah parameter?\n";
+      detailedMsg += "- Router address belum diset di pair?\n";
+    }
 
-  if (err?.error && typeof err.error === "object") {
-    detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
-  }
-  if (err?.data) {
-    detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
-  }
-  if (err?.transaction) {
-    detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
-  }
+    if (err?.error && typeof err.error === "object") {
+      detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
+    }
+    if (err?.data) {
+      detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
+    }
+    if (err?.transaction) {
+      detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
+    }
 
-  showTxStatusModal(
-    "error",
-    "❌ Gagal Add Liquidity",
-    detailedMsg,
-    ""
-  );
-  alert("🔍 Detail Error: " + detailedMsg);
-}
+    showTxStatusModal(
+      "error",
+      "❌ Gagal Add Liquidity",
+      detailedMsg,
+      ""
+    );
+    alert("🔍 Detail Error: " + detailedMsg);
   } finally {
     setLiquidityLoading(false);
   }
-
-
+}
 
 
 
