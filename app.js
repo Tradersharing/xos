@@ -350,6 +350,14 @@ async function ownerSetRouterIfNeeded(pairAddress) {
     }
   }
 }
+const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
+const pairRouter = await pair.router();
+const pairOwner = await pair.owner();
+
+console.log("ℹ️ Pair Router:", pairRouter);
+console.log("ℹ️ Pair Owner:", pairOwner);
+console.log("ℹ️ My Address:", userAddress);
+console.log("ℹ️ Target Router:", routerAddress);
 
 
 // ==================
