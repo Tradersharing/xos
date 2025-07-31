@@ -442,6 +442,13 @@ async function addLiquidity() {
     console.log("User Address:", userAddress);
     console.log("Deadline:", deadline.toString());
     console.log("⏳ addLiquidity tx sent:", tx.hash);
+if (err?.code === "CALL_EXCEPTION") {
+  detailedMsg += "\n⚠️ CALL_EXCEPTION terjadi. Kemungkinan:\n";
+  detailedMsg += "- Token belum di-approve?\n";
+  detailedMsg += "- Pair belum benar-benar dibuat?\n";
+  detailedMsg += "- Fungsi addLiquidity() di router gagal atau salah parameter?\n";
+  detailedMsg += "- Router address belum diset di pair?\n";
+}
 
     const receipt = await waitForReceiptWithRetry(tx.hash);
     console.log("🎉 Sukses addLiquidity TX:", receipt);
