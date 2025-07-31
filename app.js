@@ -310,20 +310,47 @@ const PAIR_ABI = [
 ];
 
 async function ownerSetRouterIfNeeded(pairAddress) {
-  const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
+  try {
+    console.log(`🔍 Mengecek router di pair: ${pairAddress}`);
+    
+    const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
 
-  const currentRouter = await pair.router();
-  if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
-    const owner = await pair.owner();
-    if (userAddress.toLowerCase() === owner.toLowerCase()) {
-      const tx = await pair.setRouter(routerAddress);
-      await tx.wait();
-      console.log("✅ Router diset oleh owner.");
+    const currentRouter = await pair.router();
+    console.log(`🔁 Router saat ini: ${currentRouter}`);
+    console.log(`📌 Router target: ${routerAddress}`);
+
+    if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
+      const owner = await pair.owner();
+      console.log(`👤 Owner dari pair: ${owner}`);
+      console.log(`🧑 Address kamu: ${userAddress}`);
+
+      if (userAddress.toLowerCase() === owner.toLowerCase()) {
+        console.log("✅ Kamu adalah owner, mencoba setRouter...");
+
+        const tx = await pair.setRouter(routerAddress);
+        console.log("⏳ Menunggu konfirmasi transaksi setRouter...");
+        await tx.wait();
+
+        console.log("✅ Router berhasil diset oleh owner.");
+      } else {
+        console.warn("⛔ Bukan owner, tidak bisa setRouter.");
+      }
     } else {
-      console.warn("⛔ Bukan owner, tidak bisa setRouter");
+      console.log("✅ Router sudah sesuai, tidak perlu diset ulang.");
+    }
+
+  } catch (err) {
+    console.error("❌ Gagal memeriksa/mengatur router di pair:");
+    console.error(err);
+    if (err?.code === "CALL_EXCEPTION") {
+      console.warn("⚠️ CALL_EXCEPTION saat akses router/owner/setRouter:");
+      console.warn("- Bisa jadi pair belum siap (belum sepenuhnya ter-deploy).");
+      console.warn("- Mungkin `router()` atau `owner()` bukan fungsi publik.");
+      console.warn("- Atau ada masalah pada jaringan atau signer.");
     }
   }
 }
+
 
 // ==================
 
