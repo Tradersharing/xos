@@ -350,14 +350,6 @@ async function ownerSetRouterIfNeeded(pairAddress) {
     }
   }
 }
-const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
-const pairRouter = await pair.router();
-const pairOwner = await pair.owner();
-
-console.log("ℹ️ Pair Router:", pairRouter);
-console.log("ℹ️ Pair Owner:", pairOwner);
-console.log("ℹ️ My Address:", userAddress);
-console.log("ℹ️ Target Router:", routerAddress);
 
 
 // ==================
@@ -477,6 +469,15 @@ async function addLiquidity() {
       const gasEstimate = await routerContract.estimateGas.addLiquidity(
         tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
       );
+      const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
+const pairRouter = await pair.router();
+const pairOwner = await pair.owner();
+
+console.log("ℹ️ Pair Router:", pairRouter);
+console.log("ℹ️ Pair Owner:", pairOwner);
+console.log("ℹ️ My Address:", userAddress);
+console.log("ℹ️ Target Router:", routerAddress);
+
       console.log("⛽ Estimated Gas addLiquidity:", gasEstimate.toString());
     } catch (estimateErr) {
       console.error("❌ Gagal estimateGas addLiquidity:", estimateErr);
@@ -491,6 +492,8 @@ async function addLiquidity() {
       userAddress,
       deadline
     );
+
+                
     console.log("⏳ addLiquidity tx sent:", tx.hash);
 
     const receipt = await waitForReceiptWithRetry(tx.hash);
