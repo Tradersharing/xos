@@ -457,34 +457,38 @@ async function addLiquidity() {
 
     updateAllBalances();
 
-  } catch (err) {
-if (err?.code === "CALL_EXCEPTION") {
-  detailedMsg += "\n⚠️ CALL_EXCEPTION terjadi. Kemungkinan:\n";
-  detailedMsg += "- Token belum di-approve?\n";
-  detailedMsg += "- Pair belum benar-benar dibuat?\n";
-  detailedMsg += "- Fungsi addLiquidity() di router gagal atau salah parameter?\n";
-  detailedMsg += "- Router address belum diset di pair?\n";
-  
-    console.error("❌ ERROR DETAIL addLiquidity:", err);
+  } 
+ catch (err) {
+  console.error("❌ ERROR DETAIL addLiquidity:", err);
 
-    let detailedMsg = err?.reason || err?.message || "Unknown error";
-    if (err?.error && typeof err.error === "object") {
-      detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
-    }
-    if (err?.data) {
-      detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
-    }
-    if (err?.transaction) {
-      detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
-    }
+  let detailedMsg = err?.reason || err?.message || "Unknown error";
 
-    showTxStatusModal(
-      "error",
-      "❌ Gagal Add Liquidity",
-      detailedMsg,
-      ""
-    );
-    alert("🔍 Detail Error: " + detailedMsg);
+  if (err?.code === "CALL_EXCEPTION") {
+    detailedMsg += "\n⚠️ CALL_EXCEPTION terjadi. Kemungkinan:\n";
+    detailedMsg += "- Token belum di-approve?\n";
+    detailedMsg += "- Pair belum benar-benar dibuat?\n";
+    detailedMsg += "- Fungsi addLiquidity() di router gagal atau salah parameter?\n";
+    detailedMsg += "- Router address belum diset di pair?\n";
+  }
+
+  if (err?.error && typeof err.error === "object") {
+    detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
+  }
+  if (err?.data) {
+    detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
+  }
+  if (err?.transaction) {
+    detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
+  }
+
+  showTxStatusModal(
+    "error",
+    "❌ Gagal Add Liquidity",
+    detailedMsg,
+    ""
+  );
+  alert("🔍 Detail Error: " + detailedMsg);
+}
   } finally {
     setLiquidityLoading(false);
   }
