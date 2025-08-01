@@ -351,6 +351,19 @@ async function ownerSetRouterIfNeeded(pairAddress) {
   }
 }
 
+// ✅ Pastikan router diset (pakai ensureRouterSet terbaru)
+await ensureRouterSet(existingPair);
+
+// ✅ Set router oleh owner jika perlu
+await ownerSetRouterIfNeeded(existingPair);
+
+// === CEK MANUAL & SET ROUTER JIKA PERLU ===
+const pairContract = new ethers.Contract(existingPair, [
+  "function router() view returns (address)",
+  "function setRouter(address)",
+  "function owner() view returns (address)"
+], signer);
+
 
 // ==================
 
@@ -396,7 +409,7 @@ async function addLiquidity() {
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve Token A Tx Sent:", txA.hash);
+    console.log("⏳ Approve Token A Tx Sent:", txA. no);
     await txA.wait();
     console.log("✅ Approve Token A Confirmed");
 
@@ -435,11 +448,35 @@ async function addLiquidity() {
       console.log("📦 Pair Address setelah dibuat:", existingPair);
     }
 
-    // Pastikan router di-set pada pair
-    await ensureRouterSet(existingPair);
+    // ✅ Pastikan router diset (pakai ensureRouterSet terbaru)
+await ensureRouterSet(existingPair);
 
-    // Set router oleh owner jika perlu
-    await ownerSetRouterIfNeeded(existingPair);
+// ✅ Set router oleh owner jika perlu
+await ownerSetRouterIfNeeded(existingPair);
+
+// === CEK MANUAL & SET ROUTER JIKA PERLU ===
+const pairContract = new ethers.Contract(existingPair, [
+  "function router() view returns (address)",
+  "function setRouter(address)",
+  "function owner() view returns (address)"
+], signer);
+
+const currentRouter = await pairContract.router();
+console.log("📌 Router saat ini di pair:", currentRouter);
+
+if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
+  const owner = await pairContract.owner();
+  if (owner.toLowerCase() === userAddress.toLowerCase()) {
+    console.log("🛠 Menyetel router dari UI (kamu owner)");
+    const txSet = await pairContract.setRouter(routerAddress);
+    await txSet.wait();
+    console.log("✅ Berhasil set router:", routerAddress);
+  } else {
+    alert("⛔ Pair belum mengenali router & kamu bukan owner pair.");
+    throw new Error("Gagal add liquidity: Router belum di-set & bukan owner.");
+  }
+}
+
 
     // === [6] Slippage & Deadline ===
     const slippage = getSlippage();
