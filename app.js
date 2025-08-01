@@ -366,7 +366,6 @@ const pairContract = new ethers.Contract(existingPair, [
 
 
 // ==================
-
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
@@ -392,28 +391,21 @@ async function addLiquidity() {
     console.log("🔁 Token A:", tokenA);
     console.log("🔁 Token B:", tokenB);
 
-    // === [1] Ambil desimal token ===
     const decA = 18;
     const decB = 18;
-    console.log("🔢 Desimal Token A:", decA);
-    console.log("🔢 Desimal Token B:", decB);
-
-    // === [2] Parse ke BigNumber ===
     const amtA = ethers.parseUnits(amountADesired, decA);
     const amtB = ethers.parseUnits(amountBDesired, decB);
-    console.log("💰 Amount A:", amtA.toString());
-    console.log("💰 Amount B:", amtB.toString());
+
+    const tokenAbi = ["function approve(address,uint256) returns (bool)"];
 
     // === [3] Approve Token A ===
     showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityIn.symbol}...`);
-    const tokenAbi = ["function approve(address,uint256) returns (bool)"];
     const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
     const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve Token A Tx Sent:", txA. no);
+    console.log("⏳ Approve Token A Tx Sent:", txA.hash);
     await txA.wait();
     console.log("✅ Approve Token A Confirmed");
 
-    // Check allowance A
     const allowanceA = await new ethers.Contract(tokenA, ["function allowance(address,address) view returns (uint256)"], provider)
       .allowance(userAddress, routerAddress);
     console.log("🔎 Allowance Token A:", allowanceA.toString());
@@ -426,7 +418,6 @@ async function addLiquidity() {
     await txB.wait();
     console.log("✅ Approve Token B Confirmed");
 
-    // Check allowance B
     const allowanceB = await new ethers.Contract(tokenB, ["function allowance(address,address) view returns (uint256)"], provider)
       .allowance(userAddress, routerAddress);
     console.log("🔎 Allowance Token B:", allowanceB.toString());
@@ -434,23 +425,7 @@ async function addLiquidity() {
     // === [5] Cek & Buat Pair ===
     console.log("🔍 Cek apakah pair sudah ada...");
     let existingPair = await factoryContract.getPair(tokenA, tokenB);
-   const currentRouter = await pairContract.router();
-console.log("📌 Router saat ini di pair:", currentRouter);
-
-if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
-  const owner = await pairContract.owner();
-  if (owner.toLowerCase() === userAddress.toLowerCase()) {
-    console.log("🛠 Menyetel router dari UI (kamu owner)");
-    const txSet = await pairContract.setRouter(routerAddress);
-    await txSet.wait();
-    console.log("✅ Berhasil set router:", routerAddress);
-  } else {
-    alert("⛔ Pair belum mengenali router & kamu bukan owner pair.");
-    throw new Error("Gagal add liquidity: Router belum di-set & bukan owner.");
-  }
-}
-
-  console.log("🔍 Pair ditemukan:", existingPair);
+    console.log("📦 Pair saat ini:", existingPair);
 
     if (!existingPair || existingPair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
@@ -459,36 +434,40 @@ if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
       await createTx.wait();
       console.log("✅ Pair berhasil dibuat");
 
+      // Tunggu pair benar-benar muncul
       await new Promise(r => setTimeout(r, 4000));
       existingPair = await factoryContract.getPair(tokenA, tokenB);
       console.log("📦 Pair Address setelah dibuat:", existingPair);
     }
 
-    // ✅ Pastikan router diset (pakai ensureRouterSet terbaru)
-await ensureRouterSet(existingPair);
+    // === [injected] Cek & set router jika perlu ===
+    const pairContract = new ethers.Contract(existingPair, [
+      "function router() view returns (address)",
+      "function setRouter(address)",
+      "function owner() view returns (address)"
+    ], signer);
 
-// ✅ Set router oleh owner jika perlu
-await ownerSetRouterIfNeeded(existingPair);
+    const currentRouter = await pairContract.router();
+    console.log("📌 Router saat ini di pair:", currentRouter);
 
-// === CEK MANUAL & SET ROUTER JIKA PERLU ===
-const pairContract = new ethers.Contract(existingPair, [
-  "function router() view returns (address)",
-  "function setRouter(address)",
-  "function owner() view returns (address)"
-], signer);
-
-
+    if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
+      const owner = await pairContract.owner();
+      if (owner.toLowerCase() === userAddress.toLowerCase()) {
+        console.log("🛠 Menyetel router dari UI (kamu owner)");
+        const txSet = await pairContract.setRouter(routerAddress);
+        await txSet.wait();
+        console.log("✅ Berhasil set router:", routerAddress);
+      } else {
+        alert("⛔ Pair belum mengenali router & kamu bukan owner pair.");
+        throw new Error("Gagal add liquidity: Router belum di-set & kamu bukan owner.");
+      }
+    }
 
     // === [6] Slippage & Deadline ===
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
-
-    console.log("📉 Slippage:", slippage + "%");
-    console.log("✅ minA:", minA.toString());
-    console.log("✅ minB:", minB.toString());
-    console.log("⏳ Deadline:", deadline);
 
     // === [7] Debug Parameter Lengkap ===
     console.log("=== PARAMETER ADD_LIQUIDITY ===");
@@ -507,15 +486,15 @@ const pairContract = new ethers.Contract(existingPair, [
       const gasEstimate = await routerContract.estimateGas.addLiquidity(
         tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
       );
-      const pair = new ethers.Contract(pairAddress, PAIR_ABI, signer);
-const pairRouter = await pair.router();
-const pairOwner = await pair.owner();
 
-console.log("ℹ️ Pair Router:", pairRouter);
-console.log("ℹ️ Pair Owner:", pairOwner);
-console.log("ℹ️ My Address:", userAddress);
-console.log("ℹ️ Target Router:", routerAddress);
+      const pair = new ethers.Contract(existingPair, PAIR_ABI, signer);
+      const pairRouter = await pair.router();
+      const pairOwner = await pair.owner();
 
+      console.log("ℹ️ Pair Router:", pairRouter);
+      console.log("ℹ️ Pair Owner:", pairOwner);
+      console.log("ℹ️ My Address:", userAddress);
+      console.log("ℹ️ Target Router:", routerAddress);
       console.log("⛽ Estimated Gas addLiquidity:", gasEstimate.toString());
     } catch (estimateErr) {
       console.error("❌ Gagal estimateGas addLiquidity:", estimateErr);
@@ -531,9 +510,7 @@ console.log("ℹ️ Target Router:", routerAddress);
       deadline
     );
 
-                
     console.log("⏳ addLiquidity tx sent:", tx.hash);
-
     const receipt = await waitForReceiptWithRetry(tx.hash);
     console.log("🎉 Sukses addLiquidity TX:", receipt);
 
@@ -548,15 +525,10 @@ console.log("ℹ️ Target Router:", routerAddress);
 
   } catch (err) {
     console.error("❌ ERROR DETAIL addLiquidity:", err);
-
     let detailedMsg = err?.reason || err?.message || "Unknown error";
 
     if (err?.code === "CALL_EXCEPTION") {
-      detailedMsg += "\n⚠️ CALL_EXCEPTION terjadi. Kemungkinan:\n";
-      detailedMsg += "- Token belum di-approve?\n";
-      detailedMsg += "- Pair belum benar-benar dibuat?\n";
-      detailedMsg += "- Fungsi addLiquidity() di router gagal atau salah parameter?\n";
-      detailedMsg += "- Router address belum diset di pair?\n";
+      detailedMsg += "\n⚠️ Kemungkinan:\n- Token belum di-approve?\n- Pair belum ada?\n- Parameter salah?\n- Router belum di-set?";
     }
 
     if (err?.error && typeof err.error === "object") {
@@ -569,17 +541,16 @@ console.log("ℹ️ Target Router:", routerAddress);
       detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
     }
 
-    showTxStatusModal(
-      "error",
-      "❌ Gagal Add Liquidity",
-      detailedMsg,
-      ""
-    );
+    showTxStatusModal("error", "❌ Gagal Add Liquidity", detailedMsg, "");
     alert("🔍 Detail Error: " + detailedMsg);
   } finally {
     setLiquidityLoading(false);
   }
 }
+
+
+
+
 
 
 
