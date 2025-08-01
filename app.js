@@ -434,7 +434,23 @@ async function addLiquidity() {
     // === [5] Cek & Buat Pair ===
     console.log("🔍 Cek apakah pair sudah ada...");
     let existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("🔍 Pair ditemukan:", existingPair);
+   const currentRouter = await pairContract.router();
+console.log("📌 Router saat ini di pair:", currentRouter);
+
+if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
+  const owner = await pairContract.owner();
+  if (owner.toLowerCase() === userAddress.toLowerCase()) {
+    console.log("🛠 Menyetel router dari UI (kamu owner)");
+    const txSet = await pairContract.setRouter(routerAddress);
+    await txSet.wait();
+    console.log("✅ Berhasil set router:", routerAddress);
+  } else {
+    alert("⛔ Pair belum mengenali router & kamu bukan owner pair.");
+    throw new Error("Gagal add liquidity: Router belum di-set & bukan owner.");
+  }
+}
+
+  console.log("🔍 Pair ditemukan:", existingPair);
 
     if (!existingPair || existingPair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
@@ -461,21 +477,6 @@ const pairContract = new ethers.Contract(existingPair, [
   "function owner() view returns (address)"
 ], signer);
 
-const currentRouter = await pairContract.router();
-console.log("📌 Router saat ini di pair:", currentRouter);
-
-if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
-  const owner = await pairContract.owner();
-  if (owner.toLowerCase() === userAddress.toLowerCase()) {
-    console.log("🛠 Menyetel router dari UI (kamu owner)");
-    const txSet = await pairContract.setRouter(routerAddress);
-    await txSet.wait();
-    console.log("✅ Berhasil set router:", routerAddress);
-  } else {
-    alert("⛔ Pair belum mengenali router & kamu bukan owner pair.");
-    throw new Error("Gagal add liquidity: Router belum di-set & bukan owner.");
-  }
-}
 
 
     // === [6] Slippage & Deadline ===
