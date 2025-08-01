@@ -395,7 +395,6 @@ async function addLiquidity() {
     const decB = 18;
     const amtA = ethers.parseUnits(amountADesired, decA);
     const amtB = ethers.parseUnits(amountBDesired, decB);
-
     const tokenAbi = ["function approve(address,uint256) returns (bool)"];
 
     // === [3] Approve Token A ===
@@ -405,7 +404,6 @@ async function addLiquidity() {
     console.log("⏳ Approve Token A Tx Sent:", txA.hash);
     await txA.wait();
     console.log("✅ Approve Token A Confirmed");
-
     const allowanceA = await new ethers.Contract(tokenA, ["function allowance(address,address) view returns (uint256)"], provider)
       .allowance(userAddress, routerAddress);
     console.log("🔎 Allowance Token A:", allowanceA.toString());
@@ -417,7 +415,6 @@ async function addLiquidity() {
     console.log("⏳ Approve Token B Tx Sent:", txB.hash);
     await txB.wait();
     console.log("✅ Approve Token B Confirmed");
-
     const allowanceB = await new ethers.Contract(tokenB, ["function allowance(address,address) view returns (uint256)"], provider)
       .allowance(userAddress, routerAddress);
     console.log("🔎 Allowance Token B:", allowanceB.toString());
@@ -426,30 +423,25 @@ async function addLiquidity() {
     console.log("🔍 Cek apakah pair sudah ada...");
     let existingPair = await factoryContract.getPair(tokenA, tokenB);
     console.log("📦 Pair saat ini:", existingPair);
-
     if (!existingPair || existingPair === ethers.ZeroAddress) {
       showTxStatusModal("loading", "🔨 Membuat pair baru...");
       const createTx = await factoryContract.createPair(tokenA, tokenB);
       console.log("⏳ Create Pair Tx Sent:", createTx.hash);
       await createTx.wait();
       console.log("✅ Pair berhasil dibuat");
-
-      // Tunggu pair benar-benar muncul
       await new Promise(r => setTimeout(r, 4000));
       existingPair = await factoryContract.getPair(tokenA, tokenB);
       console.log("📦 Pair Address setelah dibuat:", existingPair);
     }
 
-    // === [injected] Cek & set router jika perlu ===
+    // === [5b] Cek & set router jika perlu ===
     const pairContract = new ethers.Contract(existingPair, [
       "function router() view returns (address)",
       "function setRouter(address)",
       "function owner() view returns (address)"
     ], signer);
-
     const currentRouter = await pairContract.router();
     console.log("📌 Router saat ini di pair:", currentRouter);
-
     if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
       const owner = await pairContract.owner();
       if (owner.toLowerCase() === userAddress.toLowerCase()) {
@@ -470,31 +462,18 @@ async function addLiquidity() {
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
     // === [7] Debug Parameter Lengkap ===
-    console.log("=== PARAMETER ADD_LIQUIDITY ===");
-    console.log("Router:", routerAddress);
-    console.log("tokenA:", tokenA);
-    console.log("tokenB:", tokenB);
-    console.log("amtA:", amtA.toString());
-    console.log("amtB:", amtB.toString());
-    console.log("minA:", minA.toString());
-    console.log("minB:", minB.toString());
-    console.log("to:", userAddress);
-    console.log("deadline:", deadline);
+    console.log("=== PARAMETER ADD_LIQUIDITY ===", {
+      router: routerAddress, tokenA, tokenB,
+      amtA: amtA.toString(), amtB: amtB.toString(),
+      minA: minA.toString(), minB: minB.toString(),
+      to: userAddress, deadline
+    });
 
     // === [8] Estimate Gas ===
     try {
       const gasEstimate = await routerContract.estimateGas.addLiquidity(
         tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
       );
-
-      const pair = new ethers.Contract(existingPair, PAIR_ABI, signer);
-      const pairRouter = await pair.router();
-      const pairOwner = await pair.owner();
-
-      console.log("ℹ️ Pair Router:", pairRouter);
-      console.log("ℹ️ Pair Owner:", pairOwner);
-      console.log("ℹ️ My Address:", userAddress);
-      console.log("ℹ️ Target Router:", routerAddress);
       console.log("⛽ Estimated Gas addLiquidity:", gasEstimate.toString());
     } catch (estimateErr) {
       console.error("❌ Gagal estimateGas addLiquidity:", estimateErr);
@@ -503,54 +482,34 @@ async function addLiquidity() {
     // === [9] Eksekusi addLiquidity ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
-      tokenA, tokenB,
-      amtA, amtB,
-      minA, minB,
-      userAddress,
-      deadline
+      tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
     );
-
     console.log("⏳ addLiquidity tx sent:", tx.hash);
     const receipt = await waitForReceiptWithRetry(tx.hash);
     console.log("🎉 Sukses addLiquidity TX:", receipt);
-
     showTxStatusModal(
       "success",
       "✅ Liquidity Berhasil!",
       `${amountADesired} ${selectedLiquidityIn.symbol} + ${amountBDesired} ${selectedLiquidityOut.symbol}`,
       `https://testnet.xoscan.io/tx/${receipt.transactionHash || receipt.hash || tx.hash}`
     );
-
     updateAllBalances();
 
   } catch (err) {
     console.error("❌ ERROR DETAIL addLiquidity:", err);
     let detailedMsg = err?.reason || err?.message || "Unknown error";
-
     if (err?.code === "CALL_EXCEPTION") {
-      detailedMsg += "\n⚠️ Kemungkinan:\n- Token belum di-approve?\n- Pair belum ada?\n- Parameter salah?\n- Router belum di-set?";
+      detailedMsg += "\n⚠️ Kemungkinan:\n- Token belum di-approve?\n- Pair belum ada?\n- Router belum di-set?";
     }
-
-    if (err?.error && typeof err.error === "object") {
-      detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
-    }
-    if (err?.data) {
-      detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
-    }
-    if (err?.transaction) {
-      detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
-    }
-
+    if (err?.error) detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
+    if (err?.data) detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
+    if (err?.transaction) detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
     showTxStatusModal("error", "❌ Gagal Add Liquidity", detailedMsg, "");
     alert("🔍 Detail Error: " + detailedMsg);
   } finally {
     setLiquidityLoading(false);
   }
 }
-
-
-
-
 
 
 
