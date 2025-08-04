@@ -366,10 +366,87 @@ const pairContract = new ethers.Contract(existingPair, [
 
 
 // ==================
+
+// === Debug Logger ===
+function logStep(label, data = null) {
+  if (!window.__debugLiquidity) return;
+  const time = new Date().toISOString().split("T")[1].split(".")[0];
+  if (data !== null) {
+    console.log(`[${time}] ${label}:`, data);
+  } else {
+    console.log(`[${time}] ${label}`);
+  }
+}
+
+// === Approve Token ===
+async function approveToken(tokenAddress, amount, symbol) {
+  const tokenAbi = ["function approve(address,uint256) returns (bool)"];
+  const approveContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+
+  showTxStatusModal("loading", `🔐 Approving ${symbol}...`);
+  const tx = await approveContract.approve(routerAddress, amount);
+  logStep(`⏳ Approve ${symbol} Tx Sent`, tx.hash);
+  await tx.wait();
+  logStep(`✅ Approve ${symbol} Confirmed`);
+
+  const allowance = await new ethers.Contract(
+    tokenAddress,
+    ["function allowance(address,address) view returns (uint256)"],
+    provider
+  ).allowance(userAddress, routerAddress);
+
+  logStep(`🔎 Allowance ${symbol}`, allowance.toString());
+}
+
+// === Cek / Buat Pair ===
+async function getOrCreatePair(tokenA, tokenB) {
+  let pair = await factoryContract.getPair(tokenA, tokenB);
+  logStep("📦 Pair saat ini", pair);
+
+  if (!pair || pair === ethers.ZeroAddress) {
+    showTxStatusModal("loading", "🔨 Membuat pair baru...");
+    const tx = await factoryContract.createPair(tokenA, tokenB);
+    logStep("⏳ Create Pair Tx Sent", tx.hash);
+    await tx.wait();
+    logStep("✅ Pair berhasil dibuat");
+
+    await new Promise(r => setTimeout(r, 4000));
+    pair = await factoryContract.getPair(tokenA, tokenB);
+    logStep("📦 Pair Address setelah dibuat", pair);
+  }
+
+  return pair;
+}
+
+// === Set Router Jika Owner ===
+async function setRouterIfOwner(pairAddress) {
+  const pairContract = new ethers.Contract(pairAddress, [
+    "function router() view returns (address)",
+    "function setRouter(address)",
+    "function owner() view returns (address)"
+  ], signer);
+
+  const currentRouter = await pairContract.router();
+  logStep("📌 Router saat ini di pair", currentRouter);
+
+  if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
+    const owner = await pairContract.owner();
+    if (owner.toLowerCase() === userAddress.toLowerCase()) {
+      logStep("🛠 Menyetel router dari UI (kamu owner)");
+      const tx = await pairContract.setRouter(routerAddress);
+      await tx.wait();
+      logStep("✅ Berhasil set router", routerAddress);
+    } else {
+      throw new Error("⛔ Pair belum mengenali router & kamu bukan owner.");
+    }
+  }
+}
+
+// === Fungsi Utama: Add Liquidity ===
 async function addLiquidity() {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
-    return alert("❗ Pilih token A dan B untuk liquidity.");
+    return alert("❗ Pilih token A dan B.");
   if (selectedLiquidityIn.address === selectedLiquidityOut.address)
     return alert("❗ Token A dan B harus berbeda.");
 
@@ -385,108 +462,50 @@ async function addLiquidity() {
   try {
     const tokenA = selectedLiquidityIn.address;
     const tokenB = selectedLiquidityOut.address;
+    const amtA = ethers.parseUnits(amountADesired, 18);
+    const amtB = ethers.parseUnits(amountBDesired, 18);
 
-    console.log("🛠 Router:", routerAddress);
-    console.log("🛠 Factory:", factoryAddress);
-    console.log("🔁 Token A:", tokenA);
-    console.log("🔁 Token B:", tokenB);
+    logStep("🛠 Router", routerAddress);
+    logStep("🛠 Factory", factoryAddress);
+    logStep("🔁 Token A", tokenA);
+    logStep("🔁 Token B", tokenB);
 
-    const decA = 18;
-    const decB = 18;
-    const amtA = ethers.parseUnits(amountADesired, decA);
-    const amtB = ethers.parseUnits(amountBDesired, decB);
-    const tokenAbi = ["function approve(address,uint256) returns (bool)"];
+    await approveToken(tokenA, amtA, selectedLiquidityIn.symbol);
+    await approveToken(tokenB, amtB, selectedLiquidityOut.symbol);
 
-    // === [3] Approve Token A ===
-    showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityIn.symbol}...`);
-    const approveA = new ethers.Contract(tokenA, tokenAbi, signer);
-    const txA = await approveA.approve(routerAddress, amtA);
-    console.log("⏳ Approve Token A Tx Sent:", txA.hash);
-    await txA.wait();
-    console.log("✅ Approve Token A Confirmed");
-    const allowanceA = await new ethers.Contract(tokenA, ["function allowance(address,address) view returns (uint256)"], provider)
-      .allowance(userAddress, routerAddress);
-    console.log("🔎 Allowance Token A:", allowanceA.toString());
+    const pairAddress = await getOrCreatePair(tokenA, tokenB);
+    await setRouterIfOwner(pairAddress);
 
-    // === [4] Approve Token B ===
-    showTxStatusModal("loading", `🔐 Approving ${selectedLiquidityOut.symbol}...`);
-    const approveB = new ethers.Contract(tokenB, tokenAbi, signer);
-    const txB = await approveB.approve(routerAddress, amtB);
-    console.log("⏳ Approve Token B Tx Sent:", txB.hash);
-    await txB.wait();
-    console.log("✅ Approve Token B Confirmed");
-    const allowanceB = await new ethers.Contract(tokenB, ["function allowance(address,address) view returns (uint256)"], provider)
-      .allowance(userAddress, routerAddress);
-    console.log("🔎 Allowance Token B:", allowanceB.toString());
-
-    // === [5] Cek & Buat Pair ===
-    console.log("🔍 Cek apakah pair sudah ada...");
-    let existingPair = await factoryContract.getPair(tokenA, tokenB);
-    console.log("📦 Pair saat ini:", existingPair);
-    if (!existingPair || existingPair === ethers.ZeroAddress) {
-      showTxStatusModal("loading", "🔨 Membuat pair baru...");
-      const createTx = await factoryContract.createPair(tokenA, tokenB);
-      console.log("⏳ Create Pair Tx Sent:", createTx.hash);
-      await createTx.wait();
-      console.log("✅ Pair berhasil dibuat");
-      await new Promise(r => setTimeout(r, 4000));
-      existingPair = await factoryContract.getPair(tokenA, tokenB);
-      console.log("📦 Pair Address setelah dibuat:", existingPair);
-    }
-
-    // === [5b] Cek & set router jika perlu ===
-    const pairContract = new ethers.Contract(existingPair, [
-      "function router() view returns (address)",
-      "function setRouter(address)",
-      "function owner() view returns (address)"
-    ], signer);
-    const currentRouter = await pairContract.router();
-    console.log("📌 Router saat ini di pair:", currentRouter);
-    if (currentRouter.toLowerCase() !== routerAddress.toLowerCase()) {
-      const owner = await pairContract.owner();
-      if (owner.toLowerCase() === userAddress.toLowerCase()) {
-        console.log("🛠 Menyetel router dari UI (kamu owner)");
-        const txSet = await pairContract.setRouter(routerAddress);
-        await txSet.wait();
-        console.log("✅ Berhasil set router:", routerAddress);
-      } else {
-        alert("⛔ Pair belum mengenali router & kamu bukan owner pair.");
-        throw new Error("Gagal add liquidity: Router belum di-set & kamu bukan owner.");
-      }
-    }
-
-    // === [6] Slippage & Deadline ===
     const slippage = getSlippage();
     const minA = amtA * BigInt(100 - slippage) / 100n;
     const minB = amtB * BigInt(100 - slippage) / 100n;
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
-    // === [7] Debug Parameter Lengkap ===
-    console.log("=== PARAMETER ADD_LIQUIDITY ===", {
+    logStep("=== PARAMETER ADD_LIQUIDITY ===", {
       router: routerAddress, tokenA, tokenB,
       amtA: amtA.toString(), amtB: amtB.toString(),
       minA: minA.toString(), minB: minB.toString(),
       to: userAddress, deadline
     });
 
-    // === [8] Estimate Gas ===
     try {
       const gasEstimate = await routerContract.estimateGas.addLiquidity(
         tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
       );
-      console.log("⛽ Estimated Gas addLiquidity:", gasEstimate.toString());
-    } catch (estimateErr) {
-      console.error("❌ Gagal estimateGas addLiquidity:", estimateErr);
+      logStep("⛽ Estimated Gas addLiquidity", gasEstimate.toString());
+    } catch (e) {
+      logStep("❌ Gagal estimateGas addLiquidity", e);
     }
 
-    // === [9] Eksekusi addLiquidity ===
     showTxStatusModal("loading", "🚀 Menambahkan Liquidity...");
     const tx = await routerContract.addLiquidity(
       tokenA, tokenB, amtA, amtB, minA, minB, userAddress, deadline
     );
-    console.log("⏳ addLiquidity tx sent:", tx.hash);
+    logStep("⏳ addLiquidity tx sent", tx.hash);
+
     const receipt = await waitForReceiptWithRetry(tx.hash);
-    console.log("🎉 Sukses addLiquidity TX:", receipt);
+    logStep("🎉 Sukses addLiquidity TX", receipt);
+
     showTxStatusModal(
       "success",
       "✅ Liquidity Berhasil!",
@@ -497,19 +516,20 @@ async function addLiquidity() {
 
   } catch (err) {
     console.error("❌ ERROR DETAIL addLiquidity:", err);
-    let detailedMsg = err?.reason || err?.message || "Unknown error";
+    let msg = err?.reason || err?.message || "Unknown error";
     if (err?.code === "CALL_EXCEPTION") {
-      detailedMsg += "\n⚠️ Kemungkinan:\n- Token belum di-approve?\n- Pair belum ada?\n- Router belum di-set?";
+      msg += "\n⚠️ Kemungkinan:\n- Token belum di-approve?\n- Pair belum ada?\n- Router belum di-set?";
     }
-    if (err?.error) detailedMsg += "\nRPC Error Data: " + JSON.stringify(err.error);
-    if (err?.data) detailedMsg += "\nRevert Data: " + JSON.stringify(err.data);
-    if (err?.transaction) detailedMsg += "\nTransaction Data: " + JSON.stringify(err.transaction);
-    showTxStatusModal("error", "❌ Gagal Add Liquidity", detailedMsg, "");
-    alert("🔍 Detail Error: " + detailedMsg);
+    if (err?.error) msg += "\nRPC Error Data: " + JSON.stringify(err.error);
+    if (err?.data) msg += "\nRevert Data: " + JSON.stringify(err.data);
+    if (err?.transaction) msg += "\nTransaction Data: " + JSON.stringify(err.transaction);
+    showTxStatusModal("error", "❌ Gagal Add Liquidity", msg, "");
+    alert("🔍 Detail Error: " + msg);
   } finally {
     setLiquidityLoading(false);
   }
 }
+
 
 
 
