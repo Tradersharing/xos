@@ -443,7 +443,9 @@ async function setRouterIfOwner(pairAddress) {
 }
 
 // === Fungsi Utama: Add Liquidity ===
-async function addLiquidity() {
+async function addLiquidity()
+  if (!signer) {
+    await connect();    {
   if (!userAddress) return alert("❌ Connect wallet dulu.");
   if (!selectedLiquidityIn || !selectedLiquidityOut)
     return alert("❗ Pilih token A dan B.");
